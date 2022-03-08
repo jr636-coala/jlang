@@ -1,0 +1,70 @@
+program:
+    | statementList
+statementList':
+    | "{" statementList "}"
+statementList:
+    | [expression ";" {expression ";"}]
+expressionList:
+    | "(" [expression {"," expression}] ")"
+expression:
+    | expr_2
+expr_0:
+    | "+" expr_0 | "-" expr_0 | number | string | "(" expression ")"
+    | index | call | identifier | functionDefinition
+expr_1:
+    | expr_0 {("%" | "*" | "/" | "//") expr_0}
+expr_2:
+    | expr_1 {("+" | "-") expr_1}
+
+call:
+    | expression expressionList
+index:
+    | expression "[" expression "]"
+
+identifierList:
+    | [identifier {"," identifier}]
+functionDefinition:
+    | "fn" [identifier] "(" identifierlist ")" statementList'
+namespaceDefinition:
+    | "::" statementList'
+
+digit: 0-9
+lower: a-z
+upper: A-Z
+alpha: lower | upper
+alnum: alpha | digit
+identifier: ["::"] (alpha | "_" | "#") {alnum | "_" | "#"}
+
+
+////////////////////////////////////////////////////
+///////////////// EXAMPLE //////////////////////////
+////////////////////////////////////////////////////
+
+#entry(main);
+#output("Scuffed henlo\n");
+
+fn main() {
+       #output("Hello, World!\n");
+}
+
+//////
+
+#entry(fn () {
+    return 0;
+});
+
+//////
+
+let x = ::{
+// Namespace
+  ::STATIC = fn() {
+
+  };
+
+// Will be hidden
+  fn xyz() {}
+};
+
+X::STATIC();
+
+//
