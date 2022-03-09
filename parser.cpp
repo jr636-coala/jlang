@@ -3,6 +3,7 @@
 //
 
 #include "parser.hpp"
+#include "log.hpp"
 
 using namespace AST;
 
@@ -13,11 +14,13 @@ auto Parser::parse() -> StatementList* {
 
 StatementList* Parser::parse_statementList() {
     StatementList* node = new StatementList();
-    node->statements.push_back(parse_expression());
+    auto f_statement = parse_statement();
+    if (f_statement == nullptr) return node;
+    node->statements.push_back(f_statement);
     while(currentToken() == Token::semicolon) {
         eat(Token::semicolon);
         // Not sure if I should be doing this here
-        if (currentToken() == Token::rcurly) break;
+        if (currentToken() == Token::rcurly || currentToken() == Token::null) break;
         node->statements.push_back(parse_expression());
     }
     return node;
@@ -43,11 +46,30 @@ ExpressionList* Parser::parse_expressionList() {
     return node;
 }
 
+Statement* Parser::parse_statement() {
+    switch (currentToken()) {
+        case Token::dcolon: {
+            eat(Token::dcolon);
+            auto* node = new NSMemberDeclaration();
+            node->identifier = eat(Token::identifier).match;
+            eat(Token::assign);
+            node->expression = parse_expression();
+            return node;
+        }
+    }
+
+    return parse_expression();
+}
+
 Expression* Parser::parse_expression_0() {
     switch (currentToken()) {
         case Token::plus: break; // unary plus
         case Token::minus: break; // unary minus
-        case Token::number: break; // number literal
+        case Token::number: { // number literal
+            auto node = new Number();
+            node->number = eat(Token::number).match;
+            return node;
+        }
         case Token::string: { // string literal
             auto node = new String();
             node->string = eat(Token::string).match;
@@ -69,15 +91,39 @@ Expression* Parser::parse_expression_0() {
             return identifier;
         }
         case Token::fn: return parse_functionDefinition(); // function definition
+        case Token::let: return parse_variableDefinition(); // variable definition
+        case Token::tconst: return parse_constDefinition(); // constant definition
     }
-    std::cout << "Error no expression\n";
+    Log::warning("No expression", currentToken().loc);
+    return nullptr;
 }
-
 Expression* Parser::parse_expression_1() {
-    return parse_expression_0();
+    auto l = parse_expression_0();
+    switch (currentToken()) {
+        case Token::star: {
+            eat(Token::star);
+            auto node = new BinaryOperator();
+            node->l = l;
+            node->op = Token::star;
+            node->r = parse_expression_1();
+            return node;
+        }
+    }
+    return l;
 }
 Expression* Parser::parse_expression_2() {
-    return parse_expression_1();
+    auto l = parse_expression_1();
+    switch (currentToken()) {
+        case Token::plus: {
+            eat(Token::plus);
+            auto node = new BinaryOperator();
+            node->l = l;
+            node->op = Token::plus;
+            node->r = parse_expression_2();
+            return node;
+        }
+    }
+    return l;
 }
 
 Expression* Parser::parse_expression() {
@@ -116,7 +162,7 @@ Call* Parser::parse_call(Expression* exp) {
     return node;
 }
 
-Token Parser::currentToken() { return tokens[index].token; }
+TokenInfo Parser::currentToken() { return index < tokens.size() ? tokens[index] : TokenInfo{}; }
 
 TokenInfo Parser::eat(Token tokenType) {
     if (index > tokens.size()) {
@@ -126,11 +172,12 @@ TokenInfo Parser::eat(Token tokenType) {
     if (token == tokenType) {
         return tokens[index++];
     }
-    std::cout << index << " Could not eat " << token << " expecting " << tokenType << '\n';
-    return { "", Token::null };
+    Log::error(std::string("Could not eat ") + token_to_string(token) + " expecting " + token_to_string(tokenType), tokens[index].loc);
+    exit(0);
+    //return { "", Token::null };
 }
 
-void Parser::printAST(Expression* node, int level) {
+void Parser::printAST(Node* node, int level) {
     for (auto i = 0; i < level; ++i) {
         std::cout << ' ';
     }
@@ -157,4 +204,40 @@ void Parser::printAST(Expression* node, int level) {
             printAST(x->body);
         }
     }
+}
+
+AST::VariableDefinition* Parser::parse_variableDefinition() {
+    auto node = new VariableDefinition();
+    eat(Token::let);
+    node->identifier = eat(Token::identifier).match;
+    if (currentToken() == Token::colon) {
+        eat(Token::colon);
+        node->type = new Type(eat(Token::identifier).match);
+    }
+    if (currentToken() == Token::assign) {
+        eat(Token::assign);
+        node->expression = parse_expression();
+    }
+    return node;
+}
+
+AST::ConstDefinition* Parser::parse_constDefinition() {
+    auto node = new ConstDefinition();
+    eat(Token::tconst);
+    node->identifier = eat(Token::identifier).match;
+    if (currentToken() == Token::colon) {
+        eat(Token::colon);
+        node->type = new Type(eat(Token::identifier).match);
+    }
+    eat(Token::assign);
+    if (currentToken() == Token::dcolon) node->expression = parse_namespace();
+    else node->expression = parse_expression();
+    return node;
+}
+
+AST::NamespaceDeclaration* Parser::parse_namespace() {
+    eat(Token::dcolon);
+    auto node = new NamespaceDeclaration();
+    node->statements = parse_statementList_prime();
+    return node;
 }

@@ -4,10 +4,12 @@
 
 #ifndef LANG_ASTNODE_HPP
 #define LANG_ASTNODE_HPP
-#pragma once
+
 #include <string>
 #include <ostream>
 #include <vector>
+#include "loc.hpp"
+#include "tokeniser.hpp"
 
 #define AST_NODE_TYPES(_) \
   _(null)                        \
@@ -15,9 +17,15 @@
   _(expressionlist) \
   _(call) \
   _(functiondefinition) \
+  _(variabledefinition)   \
+  _(constdefintiion)      \
+  _(namespacedeclaration) \
+  _(nsmemberdeclaration) \
+  _(binaryoperator)\
+  _(number)                        \
   _(string)               \
   _(identifier)           \
-  _(index)     \
+  _(index)
 
 namespace AST {
     enum class NodeType {
@@ -25,19 +33,32 @@ namespace AST {
         AST_NODE_TYPES(AST_NODE_FUNCTION)
     };
 
+    using Type = std::string;
+
     struct Node {
         Node(NodeType type): type(type) {}
         NodeType type;
+        Loc loc;
     };
 
-    struct Expression {
-        Expression(NodeType type): type(type) {}
-        NodeType type;
+    struct Statement : Node {
+        Statement(NodeType type): Node(type) {}
     };
 
-    struct StatementList : Expression {
-        StatementList(): Expression(NodeType::statementlist) {}
-        std::vector<Expression*> statements;
+    struct Expression : Statement {
+        Expression(NodeType type): Statement(type) {}
+    };
+
+    struct BinaryOperator : Expression {
+        BinaryOperator(): Expression(NodeType::binaryoperator) {}
+        Expression* l;
+        Token op;
+        Expression* r;
+    };
+
+    struct StatementList : Statement {
+        StatementList(): Statement(NodeType::statementlist) {}
+        std::vector<Statement*> statements;
     };
 
     struct ExpressionList : Expression {
@@ -57,6 +78,11 @@ namespace AST {
         ExpressionList* arguments;
     };
 
+    struct Identifier : Expression {
+        Identifier() : Expression(NodeType::identifier) {}
+        std::string identifier;
+    };
+
     struct FunctionDefinition : Expression {
         FunctionDefinition(): Expression(NodeType::functiondefinition) {}
         std::string funcType; // This will be changed
@@ -65,22 +91,52 @@ namespace AST {
         StatementList* body;
     };
 
+    struct VariableDefinition : Expression {
+        VariableDefinition() : Expression(NodeType::variabledefinition) {}
+        std::string identifier;
+        Expression* expression;
+        Type* type;
+    };
+
+    struct ConstDefinition : Expression {
+        ConstDefinition() : Expression(NodeType::constdefintiion) {}
+        std::string identifier;
+        Expression* expression;
+        Type* type;
+    };
+
+    struct NamespaceDeclaration : Expression {
+        NamespaceDeclaration() : Expression(NodeType::namespacedeclaration) {}
+        StatementList* statements;
+    };
+
+    struct NSMemberDeclaration : Statement {
+        NSMemberDeclaration() : Statement(NodeType::nsmemberdeclaration) {}
+        std::string identifier;
+        Expression* expression;
+    };
+
     struct String : Expression {
         String() : Expression(NodeType::string) {}
         std::string string;
     };
 
-    struct Identifier : Expression {
-        Identifier() : Expression(NodeType::identifier) {}
-        std::string identifier;
+    struct Number : Expression {
+        Number() : Expression(NodeType::number) {}
+        std::string number;
     };
 }
 
-inline std::ostream& operator<<(std::ostream& os, AST::NodeType nodeType) {
+inline std::string node_type_to_string(AST::NodeType nodeType) {
     switch (nodeType) {
-#define AST_NODE_FUNCTION(T) case AST::NodeType::T: os << #T; break;
+#define AST_NODE_FUNCTION(T) case AST::NodeType::T: return #T;
         AST_NODE_TYPES(AST_NODE_FUNCTION)
+        default: return "# UNKNOWN NODE TYPE #";
     }
+}
+
+inline std::ostream& operator<<(std::ostream& os, AST::NodeType nodeType) {
+    os << node_type_to_string(nodeType);
     return os;
 }
 

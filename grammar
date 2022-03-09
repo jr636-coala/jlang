@@ -10,7 +10,7 @@ expression:
     | expr_2
 expr_0:
     | "+" expr_0 | "-" expr_0 | number | string | "(" expression ")"
-    | index | call | identifier | functionDefinition
+    | index | call | identifier | functionDefinition | variableDeclaration
 expr_1:
     | expr_0 {("%" | "*" | "/" | "//") expr_0}
 expr_2:
@@ -25,6 +25,9 @@ identifierList:
     | [identifier {"," identifier}]
 functionDefinition:
     | "fn" [identifier] "(" identifierlist ")" statementList'
+variableDeclaration:
+    | ( "let" | "const" ) identifier [ ":" identifier ] [ "=" expression ]
+
 namespaceDefinition:
     | "::" statementList'
 
@@ -40,22 +43,7 @@ identifier: ["::"] (alpha | "_" | "#") {alnum | "_" | "#"}
 ///////////////// EXAMPLE //////////////////////////
 ////////////////////////////////////////////////////
 
-#entry(main);
-#output("Scuffed henlo\n");
-
-fn main() {
-       #output("Hello, World!\n");
-}
-
-//////
-
-#entry(fn () {
-    return 0;
-});
-
-//////
-
-let x = ::{
+const X = ::{
 // Namespace
   ::STATIC = fn() {
 

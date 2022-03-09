@@ -9,6 +9,7 @@
 #include <string>
 #include <vector>
 #include <experimental/array>
+#include "loc.hpp"
 
 #define TOKENS(_) \
   _(null, "") \
@@ -28,30 +29,41 @@
   _(bslah, "\\")  \
   _(dcolon, "::") \
   _(colon, ":")\
-  _(string, "") \
+  _(string, "")   \
+  _(equal, "==")                \
+  _(assign, "=")                \
   _(identifier, "") \
   _(fn, "fn") \
   _(tif, "if") \
-  _(twhile, "while") \
-  _(number, "") \
+  _(twhile, "while")\
+  _(let, "let")  \
+  _(tconst, "const")\
+  _(number, "")
 
 enum class Token {
 #define TOKEN_FUNC(T, S) T,
     TOKENS(TOKEN_FUNC)
 };
 
-inline std::ostream& operator<<(std::ostream& os, Token token) {
+inline std::string token_to_string(Token token) {
     switch (token) {
-#define TOKEN_FUNC(T, S) case(Token::T): os << #T; break;
+#define TOKEN_FUNC(T, S) case(Token::T): return #T;
         TOKENS(TOKEN_FUNC)
-        default: os << "# BROKEN : INVALID TOKEN #"; break;
+        default: return "# BROKEN : INVALID TOKEN #";
     }
+}
+
+inline std::ostream& operator<<(std::ostream& os, Token token) {
+    os << token_to_string(token);
     return os;
 }
 
 struct TokenInfo {
     std::string match;
     Token token;
+    Loc loc;
+
+    operator Token() const { return token; }
 };
 
 const auto TOKEN_MAP = std::to_array<TokenInfo>({
@@ -61,11 +73,14 @@ const auto TOKEN_MAP = std::to_array<TokenInfo>({
 
 class Tokeniser {
 public:
-    Tokeniser(const std::string& src);
+    Tokeniser(const std::string& src, const std::string& filename = "");
     std::vector<TokenInfo> getTokens();
 
 private:
     std::string src {};
+    std::size_t line {1}; // New lines in strings will mess this up
+    std::size_t col {1};
+    std::string filename {};
 };
 
 

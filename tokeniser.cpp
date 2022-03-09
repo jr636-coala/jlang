@@ -3,14 +3,15 @@
 //
 
 #include "tokeniser.hpp"
+#include "log.hpp"
 
-Tokeniser::Tokeniser(const std::string& src) : src(src) {}
+Tokeniser::Tokeniser(const std::string& src, const std::string& filename) : src(src), filename(filename) {}
 std::vector<TokenInfo> Tokeniser::getTokens() {
     std::vector<TokenInfo> list {};
     std::size_t index = 0;
     auto match_token = [&index, this]() {
         for (std::size_t i = 0, j = 0; i < TOKEN_MAP.size(); ++i) {
-            auto [ match, token ] = TOKEN_MAP[i];
+            auto[match, token, loc] = TOKEN_MAP[i];
             if (!match.length()) continue;
             for (; j < match.length(); ++j) {
                 if (src[index + j] != match[j]) break;
@@ -23,7 +24,13 @@ std::vector<TokenInfo> Tokeniser::getTokens() {
         return Token::null;
     };
     auto skip_whitespace = [&index, this]() {
-        while (isspace(src[index])) index++;
+        while (isspace(src[index])) {
+            if (src[index] == '\n') {
+                line++;
+                col = 0;
+            }
+            (++col, ++index);
+        }
     };
 
     auto isValidIdentifierStart = [](auto c) {
@@ -35,7 +42,7 @@ std::vector<TokenInfo> Tokeniser::getTokens() {
 
     auto getString = [&index, this]() {
         std::string str = "";
-        while (src[++index] != '"') str += src[index];
+        while (src[(++col, ++index)] != '"') str += src[index];
         // We stop on a " char so skip this one
         index++;
         return str;
@@ -43,13 +50,13 @@ std::vector<TokenInfo> Tokeniser::getTokens() {
     auto getNumber = [&index, this]() {
         std::string str = "";
         str += src[index];
-        while (isalnum(src[++index]) || src[index] == '.') str += src[index];
+        while (isalnum(src[(++col,++index)]) || src[index] == '.') str += src[index];
         return str;
     };
     auto getIdentifier = [&isValidIdentifierChar, &index, this]() {
         std::string str = "";
         str += src[index];
-        while(isValidIdentifierChar(src[++index])) {
+        while(isValidIdentifierChar(src[(++col,++index)])) {
             str += src[index];
         }
         return str;
@@ -57,8 +64,13 @@ std::vector<TokenInfo> Tokeniser::getTokens() {
 
     while (index < src.length()) {
         skip_whitespace();
-        if (list.size() > 20) break;
         auto token = match_token();
+        // Set token location
+        Loc loc = {
+                .filename = filename,
+                .line = line,
+                .col = col
+        };
         std::string str = "";
         if (token == Token::null) {
             if (src[index] == '"') {
@@ -74,11 +86,12 @@ std::vector<TokenInfo> Tokeniser::getTokens() {
                 str = getIdentifier();
             }
             else {
-                std::cout << "bad\n";
-                std::cout << index << ' ' << (int)str[index] << '\n';
+                Log::error(std::string("Invalid token \"") + src[index] + "\"", { .filename = filename, .line = line, .col = col });
+                (++col,++index);
             }
         }
-        list.push_back({ str, token });
+
+        list.push_back({ .match = str, .token = token, .loc = loc });
     }
     return list;
 }

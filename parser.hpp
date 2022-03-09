@@ -14,7 +14,7 @@ public:
 
     auto parse() -> AST::StatementList*;
 
-    static void printAST(AST::Expression*, int level = 0);
+    static void printAST(AST::Node*, int level = 0);
 
 private:
     AST::StatementList* parse_statementList();
@@ -22,17 +22,23 @@ private:
 
     auto parse_expressionList() -> AST::ExpressionList*;
 
+    AST::Statement* parse_statement();
+
     AST::Expression* parse_expression_0();
     AST::Expression* parse_expression_1();
     AST::Expression* parse_expression_2();
     AST::Expression* parse_expression();
+
     AST::FunctionDefinition* parse_functionDefinition();
+    AST::VariableDefinition* parse_variableDefinition();
+    AST::ConstDefinition* parse_constDefinition();
+    AST::NamespaceDeclaration* parse_namespace();
 
     std::vector<std::string> parse_identifierList();
 
     AST::Call* parse_call(AST::Expression* exp = nullptr);
     AST::Expression* parse_index(auto) { return nullptr; }
-    Token currentToken();
+    TokenInfo currentToken();
     TokenInfo eat(Token tokenType);
 
 
