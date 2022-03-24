@@ -9,6 +9,7 @@
 #include <unordered_map>
 #include <vector>
 #include <optional>
+#include <sstream>
 #include "parser.hpp"
 
 struct Scope;
@@ -18,7 +19,7 @@ struct Variable {
     Variable(const std::string& str) : type(TYPE::STRING), s(str) {}
     Variable(int x) : type(TYPE::INTEGER), i(x) {}
     Variable(AST::FunctionDefinition* func) : type(TYPE::FUNC), func(func) {}
-    enum class TYPE { UNKNOWN, STRING, INTEGER, REF, FUNC } type;
+    enum class TYPE { UNKNOWN, STRING, INTEGER, REF, FUNC, NS } type;
     int i;
     std::string s;
     AST::FunctionDefinition* func;
@@ -28,13 +29,28 @@ struct Variable {
 
 struct Scope {
     Scope* parentScope {nullptr};
+    bool is_ns = false;
     std::unordered_map<std::string, AST::FunctionDefinition*> functions;
     std::unordered_map<std::string, Variable> variables;
 
-    std::optional<Variable> search(std::string str) {
-        if (functions.contains(str)) return {Variable(functions[str])};
-        if (variables.contains(str)) return {variables[str]};
-        if (!parentScope) return {};
+    std::pair<std::optional<Variable>, Scope*> search(std::string str) {
+        if (functions.contains(str)) return {Variable(functions[str]), this};
+        if (variables.contains(str)) return {variables[str], this};
+        // Check in namespaces
+        auto f = str.find("::");
+        if (f != std::string::npos) {
+            auto t = str.substr(0, f);
+            if (variables.contains(t)) {
+                auto ns = variables[t];
+                if (ns.type == Variable::TYPE::NS) {
+                    //return ns.ns->variables[""].ns->search(str.substr(f + 2));
+                    auto [var,scope] = ns.ns->search(str.substr(f + 2));
+                    return {var, scope->is_ns ? scope : ns.ns->variables[""].ns};
+                }
+            }
+        }
+
+        if (!parentScope) return {{}, this};
         return parentScope->search(str);
     }
 };
@@ -57,6 +73,7 @@ private:
     Variable run(AST::VariableDefinition* def);
     Variable run(AST::ConstDefinition* def);
     Variable run(AST::NamespaceDeclaration* def);
+    Variable run(AST::NSMemberDeclaration* def);
     Variable run(AST::BinaryOperator* op);
     Variable run(AST::Identifier* identifier);
 

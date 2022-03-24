@@ -45,6 +45,8 @@ Variable Interpreter::run(Node* node) {
             return run((BinaryOperator*)node);
         case NodeType::namespacedeclaration:
             return run((NamespaceDeclaration*)node);
+        case NodeType::nsmemberdeclaration:
+            return run((NSMemberDeclaration*)node);
     }
     Log::error("Unhandled ast node type \"" + node_type_to_string(node->type) + "\"", node->loc);
 }
@@ -85,11 +87,18 @@ Variable Interpreter::run(Call* call) {
         // Run the non compiler function
         // Does not support args atm
         // Also assume that it is an identifier call
-        const auto func_v = currentScope->search(identifier);
+        const auto [func_v, scope] = currentScope->search(identifier);
         if (!func_v.has_value() || func_v.value().type != Variable::TYPE::FUNC)
-            Log::error("function" + identifier + "does not exist", call->loc);
+            Log::error("function \"" + identifier + "\" does not exist", call->loc);
         const auto func = func_v.value().func;
-        return run(func->body);
+
+        // Replace scope so that private areas can be accessed (this should be
+        // sorted earlier on in a type checker so that we have no need to check)
+        auto t_scope = this->currentScope;
+        this->currentScope = scope;
+        auto ret = run(func->body);
+        this->currentScope = t_scope;
+        return ret;
     }
     return {};
 }
@@ -116,13 +125,25 @@ Variable Interpreter::run(AST::BinaryOperator *op) {
         case Token::star: {
             return Variable(l.i * r.i);
         }
+        case Token::assign: {
+            // FIXME horrible
+            auto id = (Identifier*)op->l;
+            auto [var,scope] = this->currentScope->search(id->identifier); // FIXME Extremely scuffed atm
+            if (var.has_value()) {
+                scope->variables[id->identifier] = r;
+            }
+            else {
+                Log::warning("Attempt to set undefined variable \"" + l.s + "\"", op->loc);
+            }
+            return r;
+        }
     }
     Log::error("No binary operator \"" + token_to_string(op->op) + "\"", op->loc);
 }
 
 Variable Interpreter::run(AST::Identifier *identifier) {
     auto& str = static_cast<Identifier*>(identifier)->identifier;
-    auto _v = currentScope->search(str);
+    auto [_v,_] = currentScope->search(str);
     if (!_v.has_value()) {
         Log::error("Identifier \"" + str + "\" does not exist", identifier->loc);
         exit(0);
@@ -131,10 +152,46 @@ Variable Interpreter::run(AST::Identifier *identifier) {
     return v;
 }
 
+// TODO this needs fixing up
 Variable Interpreter::run(AST::NamespaceDeclaration *def) {
-    return Variable();
+    auto ns = Variable();
+    ns.type = Variable::TYPE::NS;
+    ns.ns = new Scope();
+    auto this_scope = this->currentScope;
+    this->currentScope = ns.ns;
+    run(def->statements);
+    // Hide everything
+    auto ns_inner_scope = Variable();
+    ns_inner_scope.type = Variable::TYPE::NS;
+    ns_inner_scope.ns = this->currentScope;
+    ns_inner_scope.ns->is_ns = true;
+    auto ns_scope = new Scope();
+    ns_scope->variables[""] = ns_inner_scope;
+    this->currentScope = this_scope;
+    ns.ns = ns_scope;
+
+    // Demangle names and copy to outer scope the ones we care about
+    auto& ns_vars = ns_inner_scope.ns->variables;
+    for (auto i = ns_vars.begin(); i != ns_vars.end(); ++i) {
+        auto [id, var] = *i;
+        if (id[0] == ':') {
+            ns_scope->variables[id.substr(2)] = var;
+            ns_vars[id.substr(2)] = var;
+        }
+    }
+    return ns;
+}
+
+Variable Interpreter::run(AST::NSMemberDeclaration* def) {
+    auto var = run(def->expression);
+    var.constant = true;
+    this->currentScope->variables["::" + def->identifier] = var;
+    return var;
 }
 
 Variable Interpreter::run(AST::ConstDefinition *def) {
-    return Variable();
+    auto var = run(def->expression);
+    var.constant = true;
+    this->currentScope->variables[def->identifier] = var;
+    return var;
 }

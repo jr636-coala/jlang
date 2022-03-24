@@ -27,6 +27,13 @@ private:
     AST::Expression* parse_expression_0();
     AST::Expression* parse_expression_1();
     AST::Expression* parse_expression_2();
+    AST::Expression* parse_expression_3();
+    AST::Expression* parse_expression_4();
+    AST::Expression* parse_expression_5();
+    AST::Expression* parse_expression_6();
+    AST::Expression* parse_expression_7();
+    AST::Expression* parse_expression_8();
+    AST::Expression* parse_expression_9();
     AST::Expression* parse_expression();
 
     AST::FunctionDefinition* parse_functionDefinition();
@@ -35,6 +42,8 @@ private:
     AST::NamespaceDeclaration* parse_namespace();
 
     std::vector<std::string> parse_identifierList();
+    AST::Expression* parse_identifier(); // Does not actually always return an identifier
+                                        // Can also return a call or index
 
     AST::Call* parse_call(AST::Expression* exp = nullptr);
     AST::Expression* parse_index(auto) { return nullptr; }

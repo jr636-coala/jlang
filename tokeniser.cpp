@@ -33,6 +33,11 @@ std::vector<TokenInfo> Tokeniser::getTokens() {
         }
     };
 
+    auto skipSingleComment = [&index, this]() {
+        while (src[index] != '\n') index++;
+        (col=0,++line);
+    };
+
     auto isValidIdentifierStart = [](auto c) {
         return isalpha(c) || c == '_' || c == '$' || c == '#';
     };
@@ -41,20 +46,20 @@ std::vector<TokenInfo> Tokeniser::getTokens() {
     };
 
     auto getString = [&index, this]() {
-        std::string str = "";
+        std::string str;
         while (src[(++col, ++index)] != '"') str += src[index];
         // We stop on a " char so skip this one
         index++;
         return str;
     };
     auto getNumber = [&index, this]() {
-        std::string str = "";
+        std::string str;
         str += src[index];
         while (isalnum(src[(++col,++index)]) || src[index] == '.') str += src[index];
         return str;
     };
     auto getIdentifier = [&isValidIdentifierChar, &index, this]() {
-        std::string str = "";
+        std::string str;
         str += src[index];
         while(isValidIdentifierChar(src[(++col,++index)])) {
             str += src[index];
@@ -64,6 +69,10 @@ std::vector<TokenInfo> Tokeniser::getTokens() {
 
     while (index < src.length()) {
         skip_whitespace();
+        if (src[index] == '/' && src[index + 1] == '/') {
+            skipSingleComment();
+            continue;
+        }
         auto token = match_token();
         // Set token location
         Loc loc = {

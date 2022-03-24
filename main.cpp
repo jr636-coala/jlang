@@ -20,6 +20,7 @@ int main(int argc, char** argv) {
     auto parser = Parser(tokens);
     auto ast = parser.parse();
     Parser::printAST(ast);
+    std::cout << "\n\nPROGRAM OUTPUT:\n";
 
     // Define compilerFuncs
     Interpreter::compilerFuncs.insert({"#entry", [](auto& inter, const auto& args){

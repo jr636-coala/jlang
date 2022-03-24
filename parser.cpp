@@ -21,7 +21,7 @@ StatementList* Parser::parse_statementList() {
         eat(Token::semicolon);
         // Not sure if I should be doing this here
         if (currentToken() == Token::rcurly || currentToken() == Token::null) break;
-        node->statements.push_back(parse_expression());
+        node->statements.push_back(parse_statement());
     }
     return node;
 }
@@ -35,12 +35,13 @@ StatementList* Parser::parse_statementList_prime() {
 ExpressionList* Parser::parse_expressionList() {
     auto node = new ExpressionList();
     eat(Token::lparen);
-    if (currentToken() == Token::rparen) return node; // No expressions in this list
+    if (currentToken() != Token::rparen) { // Expressions in this list
 
-    node->expressions.push_back(parse_expression()); // Add the first expression
-    while(currentToken() != Token::rparen) { // Add the rest
-        eat(Token::comma);
-        node->expressions.push_back(parse_expression());
+        node->expressions.push_back(parse_expression()); // Add the first expression
+        while (currentToken() != Token::rparen) { // Add the rest
+            eat(Token::comma);
+            node->expressions.push_back(parse_expression());
+        }
     }
     eat(Token::rparen);
     return node;
@@ -59,6 +60,20 @@ Statement* Parser::parse_statement() {
     }
 
     return parse_expression();
+}
+
+Expression* Parser::parse_identifier() {
+    Identifier* identifier = new Identifier();
+    identifier->identifier = eat(Token::identifier).match;
+    while (currentToken() == Token::dcolon) {
+        eat(Token::dcolon);
+        identifier->identifier += "::" + eat(Token::identifier).match;
+    }
+    switch (currentToken()) {
+        case Token::lparen: return parse_call(identifier); // function call
+        case Token::lsquare: return parse_index(identifier); // index
+    }
+    return identifier;
 }
 
 Expression* Parser::parse_expression_0() {
@@ -81,22 +96,16 @@ Expression* Parser::parse_expression_0() {
             eat(Token::rparen);
             return exp;
         }
-        case Token::identifier: {
-            Identifier* identifier = new Identifier();
-            identifier->identifier = eat(Token::identifier).match;
-            switch (currentToken()) {
-                case Token::lparen: return parse_call(identifier); // function call
-                case Token::lsquare: return parse_index(identifier); // index
-            }
-            return identifier;
-        }
+        case Token::identifier: return parse_identifier();
         case Token::fn: return parse_functionDefinition(); // function definition
         case Token::let: return parse_variableDefinition(); // variable definition
         case Token::tconst: return parse_constDefinition(); // constant definition
+        case Token::dcolon: return parse_namespace(); // namespace definition
     }
     Log::warning("No expression", currentToken().loc);
     return nullptr;
 }
+
 Expression* Parser::parse_expression_1() {
     auto l = parse_expression_0();
     switch (currentToken()) {
@@ -115,10 +124,9 @@ Expression* Parser::parse_expression_2() {
     auto l = parse_expression_1();
     switch (currentToken()) {
         case Token::plus: {
-            eat(Token::plus);
             auto node = new BinaryOperator();
             node->l = l;
-            node->op = Token::plus;
+            node->op = eat(Token::plus);
             node->r = parse_expression_2();
             return node;
         }
@@ -126,8 +134,28 @@ Expression* Parser::parse_expression_2() {
     return l;
 }
 
+AST::Expression* Parser::parse_expression_3() {
+    auto l = parse_expression_2();
+    switch (currentToken()) {
+        case Token::assign: {
+            auto node = new BinaryOperator();
+            node->l = l;
+            node->op = eat(Token::assign);
+            node->r = parse_expression_3();
+            return node;
+        }
+    }
+    return l;
+}
+AST::Expression* Parser::parse_expression_6() {}
+AST::Expression* Parser::parse_expression_5() {}
+AST::Expression* Parser::parse_expression_7() {}
+AST::Expression* Parser::parse_expression_4() {}
+AST::Expression* Parser::parse_expression_8() {}
+AST::Expression* Parser::parse_expression_9() {}
+
 Expression* Parser::parse_expression() {
-    return parse_expression_2();
+    return parse_expression_3();
 }
 
 FunctionDefinition* Parser::parse_functionDefinition() {
