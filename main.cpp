@@ -14,7 +14,7 @@ std::string loadFile(const std::string& path) {
 }
 
 int main(int argc, char** argv) {
-    auto tokeniser = Tokeniser(loadFile("progs/ns1.jl"));
+    auto tokeniser = Tokeniser(loadFile("progs/sb.jl"));
     auto tokens = tokeniser.getTokens();
     //printTokens(tokens);
     auto parser = Parser(tokens);
@@ -44,7 +44,7 @@ int main(int argc, char** argv) {
     };
 
     auto interpreter = Interpreter(ast);
-    interpreter.interp();
+    std::cout << *interpreter.interp().i32;
 
     return 0;
 }

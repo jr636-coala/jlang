@@ -25,7 +25,8 @@
   _(number)                        \
   _(string)               \
   _(identifier)           \
-  _(index)
+  _(index)\
+  _(returnstatement)
 
 namespace AST {
     enum class NodeType {
@@ -48,7 +49,7 @@ namespace AST {
     };
 
     struct BinaryOperator : Expression {
-        BinaryOperator(): Expression(NodeType::binaryoperator) {}
+        BinaryOperator(auto l, auto op, auto r): Expression(NodeType::binaryoperator), l(l), op(op), r(r) {}
         Expression* l;
         Token op;
         Expression* r;
@@ -85,7 +86,7 @@ namespace AST {
         FunctionDefinition(): Expression(NodeType::functiondefinition) {}
         std::string funcType; // This will be changed
         std::string identifier;
-        std::vector<std::string> parameters;
+        std::vector<std::pair<Token, std::string>> parameters;
         StatementList* body;
     };
 
@@ -114,13 +115,18 @@ namespace AST {
         Expression* expression;
     };
 
+    struct ReturnStatement : Statement {
+        ReturnStatement(auto expression) : Statement(NodeType::returnstatement), expression(expression) {}
+        Expression* expression;
+    };
+
     struct String : Expression {
-        String() : Expression(NodeType::string) {}
+        String(const auto& string) : Expression(NodeType::string), string(string) {}
         std::string string;
     };
 
     struct Number : Expression {
-        Number() : Expression(NodeType::number) {}
+        Number(const auto& number) : Expression(NodeType::number), number(number) {}
         std::string number;
     };
 }

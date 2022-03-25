@@ -21,6 +21,7 @@
   _(rsquare, "]") \
   _(semicolon, ";") \
   _(comma, ",")   \
+  _(plusequal, "+=") \
   _(plus, "+")    \
   _(minus, "-")   \
   _(perc, "%")    \
@@ -30,19 +31,46 @@
   _(dcolon, "::") \
   _(colon, ":")\
   _(string, "")   \
-  _(equal, "==")                \
-  _(assign, "=")                \
+  _(equal, "==") \
+  _(assign, "=")  \
+  _(i8, "i8") \
+  _(i16, "i16") \
+  _(i32, "i32") \
+  _(i64, "i64") \
+  _(u8, "u8") \
+  _(u16, "u16") \
+  _(u32, "u32") \
+  _(u64, "u64")   \
+  _(f32, "f32")   \
+  _(f64, "f64")   \
+  _(c, "char")    \
   _(identifier, "") \
   _(fn, "fn") \
   _(tif, "if") \
   _(twhile, "while")\
   _(let, "let")  \
   _(tconst, "const")\
-  _(number, "")
+  _(number, "") \
+  _(ret, "return")
 
 enum class Token {
 #define TOKEN_FUNC(T, S) T,
     TOKENS(TOKEN_FUNC)
+};
+
+constexpr auto TypeTokens = {
+        Token::i8,
+        Token::i16,
+        Token::i32,
+        Token::i64,
+
+        Token::u8,
+        Token::u16,
+        Token::u32,
+        Token::u64,
+
+        Token::f32,
+        Token::f64,
 };
 
 inline std::string token_to_string(Token token) {

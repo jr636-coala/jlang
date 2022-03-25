@@ -57,11 +57,12 @@ struct Type {
     TypeT type;
     bool constant {};
 
-    static Type add(Type a, Type b);
+    static Type plus(Type a, Type b);
     static Type minus(Type a, Type b);
-    static Type divide(Type a, Type b);
-    static Type multiply(Type a, Type b);
+    static Type slash(Type a, Type b);
+    static Type star(Type a, Type b);
 
+    static Type plusEqual(Type& a, Type b);
 
     union {
         TypeI<TypeT::i8>* i8;

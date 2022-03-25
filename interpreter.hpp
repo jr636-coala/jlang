@@ -16,7 +16,7 @@ using Scope = TypeI<TypeT::ns>;
 class Interpreter {
 public:
     Interpreter(auto* program) : program(program) {}
-    void interp();
+    Type interp();
 
     std::string entry;
 

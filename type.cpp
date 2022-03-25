@@ -33,7 +33,7 @@ Type::Type(AST::FunctionDefinition* fn) {
 
 // Binary operators
 
-Type Type::add(Type a, Type b) {
+Type Type::plus(Type a, Type b) {
     if (a.type == b.type) {
         switch (a.type) {
             case TypeT::i32: return Type(*a.i32 + *b.i32);
@@ -48,14 +48,14 @@ Type Type::minus(Type a, Type b) {
         }
     }
 }
-Type Type::divide(Type a, Type b) {
+Type Type::slash(Type a, Type b) {
     if (a.type == b.type) {
         switch (a.type) {
             case TypeT::i32: return Type(*a.i32 / *b.i32);
         }
     }
 }
-Type Type::multiply(Type a, Type b) {
+Type Type::star(Type a, Type b) {
     if (a.type == b.type) {
         switch (a.type) {
             case TypeT::i32: return Type(*a.i32 * *b.i32);
@@ -63,15 +63,11 @@ Type Type::multiply(Type a, Type b) {
     }
 }
 
-
-
-
-
-
-
-
-
-
+Type Type::plusEqual(Type& a, Type b) {
+    if (a.type == b.type) {
+        return a = Type::plus(a, b);
+    }
+}
 
 std::pair<std::optional<Type>, TypeI<TypeT::ns>*> TypeI<TypeT::ns>::search(std::string str) {
     auto f = str.find("::");
@@ -89,5 +85,6 @@ std::pair<std::optional<Type>, TypeI<TypeT::ns>*> TypeI<TypeT::ns>::search(std::
         }
         return {var, this};
     }
+    if (parentScope) return parentScope->search(str);
     return {{}, this};
 }

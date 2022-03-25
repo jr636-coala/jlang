@@ -11,7 +11,7 @@ using namespace AST;
 
 std::unordered_map<std::string, Interpreter::compilerfunc_t> Interpreter::compilerFuncs = {};
 
-void Interpreter::interp() {
+Type Interpreter::interp() {
     if (!currentScope) delete currentScope;
     currentScope = new Scope;
     run(program);
@@ -20,7 +20,7 @@ void Interpreter::interp() {
     c->expression = new Identifier();
     static_cast<Identifier*>(c->expression)->identifier = entry;
     c->arguments = new ExpressionList();
-    run(c.get());
+    return run(c.get());
 }
 
 Type Interpreter::run(Node* node) {
@@ -44,7 +44,7 @@ Type Interpreter::run(Node* node) {
 Type Interpreter::run(StatementList* list) {
     for (auto i = 0; i < list->statements.size(); ++i) {
         const auto statement = list->statements[i];
-        //if (statement->type == Token::return) return run((Return*)statment);
+        if (statement->type == NodeType::returnstatement) return run(((ReturnStatement*)statement)->expression);
         run((Node*)statement);
     }
 }
@@ -86,8 +86,15 @@ Type Interpreter::run(Call* call) {
         // Replace scope so that private areas can be accessed (this should be
         // sorted earlier on in a type checker so that we have no need to check)
         auto t_scope = this->currentScope;
-        this->currentScope = scope;
+        // Create new function scope
+        auto f_scope = new Scope();
+        f_scope->parentScope = scope;
+        for (auto i = 0; i < func->parameters.size(); ++i) {
+            f_scope->val[func->parameters[i].second] = args[i];
+        }
+        this->currentScope = f_scope;
         ret = run(func->body);
+        delete f_scope;
         this->currentScope = t_scope;
     }
     return ret;
@@ -107,21 +114,21 @@ Type Interpreter::run(AST::BinaryOperator *op) {
     if (l.type == TypeT::unknown || r.type == TypeT::unknown)
         Log::error("Unknown types for binary operator", op->loc);
     switch (op->op) {
-        case Token::plus: return Type::add(l, r);
+        case Token::plus: return Type::plus(l, r);
         case Token::minus: return Type::minus(l, r);
-        case Token::star: return Type::multiply(l, r);
-        case Token::slash: return Type::divide(l, r);
+        case Token::star: return Type::star(l, r);
+        case Token::slash: return Type::slash(l, r);
         case Token::assign: {
             // FIXME horrible
             auto id = (Identifier*)op->l;
-            auto [var,scope] = this->currentScope->search(id->identifier); // FIXME Extremely scuffed atm
-            if (var.has_value()) {
-                scope->val[id->identifier] = r;
-            }
-            else {
-                Log::warning("Attempt to set undefined variable \"" + l.string->val + "\"", op->loc);
-            }
+            auto [_,scope] = this->currentScope->search(id->identifier); // FIXME Extremely scuffed atm
+            scope->val[id->identifier] = r;
             return r;
+        }
+        case Token::plusequal: {
+            auto id = (Identifier*)op->l;
+            auto [_, scope] = this->currentScope->search(id->identifier);
+            return Type::plusEqual(scope->val[id->identifier], r);
         }
     }
     Log::error("No binary operator \"" + token_to_string(op->op) + "\"", op->loc);

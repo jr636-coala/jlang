@@ -35,13 +35,14 @@ fn main() {
 
     y = 10;
 
-    fn abc() {
-        y = 20;
+    fn abc(x : i8) {
+        y += x;
+        return y;
     };
     a();
-    abc();
+    abc(467);
     #output(y);
-
+    return abc(9999999);
 };
 
 #entry(main);

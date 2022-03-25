@@ -41,7 +41,7 @@ private:
     AST::ConstDefinition* parse_constDefinition();
     AST::NamespaceDeclaration* parse_namespace();
 
-    std::vector<std::string> parse_identifierList();
+    std::vector<std::pair<Token, std::string>> parse_identifierList();
     AST::Expression* parse_identifier(); // Does not actually always return an identifier
                                         // Can also return a call or index
 
@@ -49,7 +49,9 @@ private:
     AST::Expression* parse_index(auto) { return nullptr; }
     TokenInfo currentToken();
     Loc loc();
+
     TokenInfo eat(Token tokenType);
+    TokenInfo eat(std::vector<Token> tokenType);
 
 
     long index {0};
