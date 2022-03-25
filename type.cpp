@@ -3,6 +3,7 @@
 //
 
 #include "type.hpp"
+#include "log.hpp"
 
 void setupType(Type* type, TypeT tt) {
     type->type = tt;
@@ -22,9 +23,9 @@ Type::Type(const std::string& str) {
     setupType(this, TypeT::string);
     string->val = str;
 }
-Type::Type(int x) {
-    setupType(this, TypeT::i32);
-    i32->val = x;
+Type::Type(std::int64_t x) {
+    setupType(this, TypeT::i64);
+    i64->val = x;
 }
 Type::Type(AST::FunctionDefinition* fn) {
     setupType(this, TypeT::fn);
@@ -36,29 +37,34 @@ Type::Type(AST::FunctionDefinition* fn) {
 Type Type::plus(Type a, Type b) {
     if (a.type == b.type) {
         switch (a.type) {
-            case TypeT::i32: return Type(*a.i32 + *b.i32);
+            case TypeT::i64: return Type(*a.i64 + *b.i64);
             case TypeT::string: return Type(a.string->val + b.string->val);
         }
     }
+    else {
+        if (a.type == TypeT::string && b.type == TypeT::i64) return Type(a.string->val + std::to_string(*b.i64));
+        if (a.type == TypeT::i64 && b.type == TypeT::string) return Type(std::to_string(*a.i64) + b.string->val);
+    }
+    Log::error("No plus operator defined for " + typeT_to_string(a.type) + " with " + typeT_to_string(b.type), {});
 }
 Type Type::minus(Type a, Type b) {
     if (a.type == b.type) {
         switch (a.type) {
-            case TypeT::i32: return Type(*a.i32 - *b.i32);
+            case TypeT::i64: return Type(*a.i64 - *b.i64);
         }
     }
 }
 Type Type::slash(Type a, Type b) {
     if (a.type == b.type) {
         switch (a.type) {
-            case TypeT::i32: return Type(*a.i32 / *b.i32);
+            case TypeT::i64: return Type(*a.i64 / *b.i64);
         }
     }
 }
 Type Type::star(Type a, Type b) {
     if (a.type == b.type) {
         switch (a.type) {
-            case TypeT::i32: return Type(*a.i32 * *b.i32);
+            case TypeT::i64: return Type(*a.i64 * *b.i64);
         }
     }
 }

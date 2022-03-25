@@ -150,6 +150,7 @@ Type Interpreter::run(AST::NamespaceDeclaration *def) {
     auto ns = Type();
     ns.type = TypeT::ns;
     ns.ns = new Scope();
+    ns.ns->parentScope = this->currentScope;
     auto this_scope = this->currentScope;
     this->currentScope = ns.ns;
     run(def->statements);

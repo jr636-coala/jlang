@@ -10,7 +10,7 @@ std::vector<TokenInfo> Tokeniser::getTokens() {
     std::vector<TokenInfo> list {};
     std::size_t index = 0;
     auto match_token = [&index, this]() {
-        for (std::size_t i = 0, j = 0; i < TOKEN_MAP.size(); ++i) {
+        for (std::size_t i = 0, j = 0; i < TOKEN_MAP.size(); ++i, j = 0) {
             auto[match, token, loc] = TOKEN_MAP[i];
             if (!match.length()) continue;
             for (; j < match.length(); ++j) {
@@ -54,9 +54,20 @@ std::vector<TokenInfo> Tokeniser::getTokens() {
         return isValidIdentifierStart(c) || isdigit(c);
     };
 
-    auto getString = [&index, this]() {
+    auto replaceAll = [](std::string& str, std::string_view x, std::string_view y) {
+        std::size_t count{};
+        for (std::string::size_type pos{};
+             str.npos != (pos = str.find(x.data(), pos, x.length()));
+             pos += y.length(), ++count) {
+            str.replace(pos, x.length(), y.data(), y.length());
+        }
+        return count;
+    };
+
+    auto getString = [&index, this, replaceAll]() {
         std::string str;
         while (src[(++col, ++index)] != '"') str += src[index];
+        replaceAll(str, "\\n", "\n");
         // We stop on a " char so skip this one
         index++;
         return str;
@@ -89,6 +100,9 @@ std::vector<TokenInfo> Tokeniser::getTokens() {
             }
         }
         auto token = match_token();
+        if (token == Token::dcolon) {
+            std::cout << "";
+        }
         // Set token location
         Loc loc = {
                 .filename = filename,

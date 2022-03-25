@@ -39,6 +39,13 @@ enum class TypeT {
     TYPES(TYPE_FUNC)
 };
 
+inline std::string typeT_to_string(TypeT type) {
+    switch (type) {
+#define TYPE_FUNC(T, S) case(TypeT::T): return #T;
+        TYPES(TYPE_FUNC)
+        default: return "# BROKEN : INVALID TYPE_T #";
+    }
+}
 
 template <TypeT T>
 struct TypeI {};
@@ -50,7 +57,7 @@ struct Type {
 
     Type(const std::string &str);
 
-    Type(int x);
+    Type(std::int64_t x);
 
     Type(AST::FunctionDefinition *fn);
 
@@ -180,7 +187,7 @@ struct TypeI<TypeT::reference> {
 template <>
 struct TypeI<TypeT::ns> {
     std::unordered_map<std::string, Type> val;
-    TypeI<TypeT::ns>* parentScope;
+    TypeI<TypeT::ns>* parentScope {};
     operator auto&() { return val; }
 
     std::pair<std::optional<Type>, TypeI<TypeT::ns>*> search(std::string str);

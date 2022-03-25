@@ -44,6 +44,7 @@
   _(f32, "f32")   \
   _(f64, "f64")   \
   _(c, "char")    \
+  _(str, "string") \
   _(identifier, "") \
   _(fn, "fn") \
   _(tif, "if") \
@@ -71,6 +72,9 @@ constexpr auto TypeTokens = {
 
         Token::f32,
         Token::f64,
+
+        Token::c,
+        Token::str
 };
 
 inline std::string token_to_string(Token token) {
