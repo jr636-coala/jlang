@@ -48,6 +48,7 @@ private:
     AST::Call* parse_call(AST::Expression* exp = nullptr);
     AST::Expression* parse_index(auto) { return nullptr; }
     TokenInfo currentToken();
+    Loc loc();
     TokenInfo eat(Token tokenType);
 
 

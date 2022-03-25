@@ -185,12 +185,14 @@ std::vector<std::string> Parser::parse_identifierList() {
 
 Call* Parser::parse_call(Expression* exp) {
     Call* node = new Call();
+    node->loc = loc();
     node->expression = exp ? exp : parse_expression();
     node->arguments = parse_expressionList();
     return node;
 }
 
 TokenInfo Parser::currentToken() { return index < tokens.size() ? tokens[index] : TokenInfo{}; }
+Loc Parser::loc() { return currentToken().loc; };
 
 TokenInfo Parser::eat(Token tokenType) {
     if (index > tokens.size()) {
@@ -240,7 +242,7 @@ AST::VariableDefinition* Parser::parse_variableDefinition() {
     node->identifier = eat(Token::identifier).match;
     if (currentToken() == Token::colon) {
         eat(Token::colon);
-        node->type = new Type(eat(Token::identifier).match);
+        node->type = new std::string(eat(Token::identifier).match);
     }
     if (currentToken() == Token::assign) {
         eat(Token::assign);
@@ -255,7 +257,7 @@ AST::ConstDefinition* Parser::parse_constDefinition() {
     node->identifier = eat(Token::identifier).match;
     if (currentToken() == Token::colon) {
         eat(Token::colon);
-        node->type = new Type(eat(Token::identifier).match);
+        node->type = new std::string(eat(Token::identifier).match);
     }
     eat(Token::assign);
     if (currentToken() == Token::dcolon) node->expression = parse_namespace();

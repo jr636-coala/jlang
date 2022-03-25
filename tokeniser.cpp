@@ -17,7 +17,7 @@ std::vector<TokenInfo> Tokeniser::getTokens() {
                 if (src[index + j] != match[j]) break;
             }
             if (j == match.length()) {
-                index += match.length();
+                (col += match.length(), index += match.length());
                 return token;
             }
         }
@@ -26,7 +26,7 @@ std::vector<TokenInfo> Tokeniser::getTokens() {
     auto skip_whitespace = [&index, this]() {
         while (isspace(src[index])) {
             if (src[index] == '\n') {
-                line++;
+                ++line;
                 col = 0;
             }
             (++col, ++index);
@@ -35,7 +35,16 @@ std::vector<TokenInfo> Tokeniser::getTokens() {
 
     auto skipSingleComment = [&index, this]() {
         while (src[index] != '\n') index++;
-        (col=0,++line);
+    };
+    auto skipMultiComment = [&index, this]() {
+        (col+=2,index += 2);
+        while(src[index] != '*' || src[index + 1] != '/') {
+            if (src[index] == '\n') {
+                (col=0,++line);
+            }
+            (++col,++index);
+        }
+        (col+=2,index+=2);
     };
 
     auto isValidIdentifierStart = [](auto c) {
@@ -69,9 +78,15 @@ std::vector<TokenInfo> Tokeniser::getTokens() {
 
     while (index < src.length()) {
         skip_whitespace();
-        if (src[index] == '/' && src[index + 1] == '/') {
-            skipSingleComment();
-            continue;
+        if (src[index] == '/') {
+            if (src[index + 1] == '/') {
+                skipSingleComment();
+                continue;
+            }
+            if (src[index + 1] == '*') {
+                skipMultiComment();
+                continue;
+            }
         }
         auto token = match_token();
         // Set token location

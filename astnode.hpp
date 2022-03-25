@@ -33,8 +33,6 @@ namespace AST {
         AST_NODE_TYPES(AST_NODE_FUNCTION)
     };
 
-    using Type = std::string;
-
     struct Node {
         Node(NodeType type): type(type) {}
         NodeType type;
@@ -95,14 +93,14 @@ namespace AST {
         VariableDefinition() : Expression(NodeType::variabledefinition) {}
         std::string identifier;
         Expression* expression;
-        Type* type;
+        std::string* type;
     };
 
     struct ConstDefinition : Expression {
         ConstDefinition() : Expression(NodeType::constdefintiion) {}
         std::string identifier;
         Expression* expression;
-        Type* type;
+        std::string* type;
     };
 
     struct NamespaceDeclaration : Expression {

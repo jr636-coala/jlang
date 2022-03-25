@@ -17,51 +17,40 @@ void Interpreter::interp() {
     run(program);
     // We should have our entry now
     auto c = std::make_unique<Call>();
-    c.get()->expression = new Identifier();
-    static_cast<Identifier*>(c.get()->expression)->identifier = entry;
-    c.get()->arguments = new ExpressionList();
+    c->expression = new Identifier();
+    static_cast<Identifier*>(c->expression)->identifier = entry;
+    c->arguments = new ExpressionList();
     run(c.get());
 }
 
-Variable Interpreter::run(Node* node) {
+Type Interpreter::run(Node* node) {
     switch(node->type) {
-        case NodeType::statementlist:
-            return run((StatementList*)node);
-        case NodeType::call:
-            return run((Call*)node);
-        case NodeType::functiondefinition:
-            return run((FunctionDefinition*)node);
-        case NodeType::variabledefinition:
-            return run((VariableDefinition*)node);
-        case NodeType::constdefintiion:
-            return run((ConstDefinition*)node);
-        case NodeType::number:
-            return Variable(std::stoi(((Number*)node)->number));
-        case NodeType::string:
-            return Variable(((String*)node)->string);
-        case NodeType::identifier:
-            return run((Identifier*)node);
-        case NodeType::binaryoperator:
-            return run((BinaryOperator*)node);
-        case NodeType::namespacedeclaration:
-            return run((NamespaceDeclaration*)node);
-        case NodeType::nsmemberdeclaration:
-            return run((NSMemberDeclaration*)node);
+        case NodeType::statementlist:        return run((StatementList*)node);
+        case NodeType::call:                 return run((Call*)node);
+        case NodeType::functiondefinition:   return run((FunctionDefinition*)node);
+        case NodeType::variabledefinition:   return run((VariableDefinition*)node);
+        case NodeType::constdefintiion:      return run((ConstDefinition*)node);
+        case NodeType::identifier:           return run((Identifier*)node);
+        case NodeType::binaryoperator:       return run((BinaryOperator*)node);
+        case NodeType::namespacedeclaration: return run((NamespaceDeclaration*)node);
+        case NodeType::nsmemberdeclaration:  return run((NSMemberDeclaration*)node);
+
+        case NodeType::number:               return Type(std::stoi(((Number*)node)->number));
+        case NodeType::string:               return Type(((String*)node)->string);
     }
     Log::error("Unhandled ast node type \"" + node_type_to_string(node->type) + "\"", node->loc);
 }
 
-Variable Interpreter::run(StatementList* list) {
+Type Interpreter::run(StatementList* list) {
     for (auto i = 0; i < list->statements.size(); ++i) {
         const auto statement = list->statements[i];
         //if (statement->type == Token::return) return run((Return*)statment);
         run((Node*)statement);
     }
-    return {};
 }
 
-std::vector<Variable> Interpreter::resolveExpressionList(ExpressionList* list) {
-    std::vector<Variable> out;
+std::vector<Type> Interpreter::resolveExpressionList(ExpressionList* list) {
+    std::vector<Type> out;
     out.reserve(list->expressions.size());
     for (auto i = 0; i < list->expressions.size(); ++i) {
         const auto expression = list->expressions[i];
@@ -70,17 +59,19 @@ std::vector<Variable> Interpreter::resolveExpressionList(ExpressionList* list) {
     return out;
 }
 
-Variable Interpreter::run(Call* call) {
+Type Interpreter::run(Call* call) {
 
     auto args = resolveExpressionList(call->arguments);
 
     const auto& identifier = static_cast<Identifier*>(call->expression)->identifier;
 
+    Type ret;
+
     if (call->expression->type == NodeType::identifier && identifier[0] == '#') {
         // Call compiler function
         const auto& _call = reinterpret_cast<Identifier*>(call->expression);
         if (compilerFuncs.contains(_call->identifier)) {
-            (*compilerFuncs[_call->identifier])(*this, args);
+            ret = (*compilerFuncs[_call->identifier])(*this, call->loc, args);
         }
     }
     else {
@@ -88,52 +79,47 @@ Variable Interpreter::run(Call* call) {
         // Does not support args atm
         // Also assume that it is an identifier call
         const auto [func_v, scope] = currentScope->search(identifier);
-        if (!func_v.has_value() || func_v.value().type != Variable::TYPE::FUNC)
+        if (!func_v.has_value() || func_v.value().type != TypeT::fn)
             Log::error("function \"" + identifier + "\" does not exist", call->loc);
-        const auto func = func_v.value().func;
+        const auto func = func_v.value().fn->val;
 
         // Replace scope so that private areas can be accessed (this should be
         // sorted earlier on in a type checker so that we have no need to check)
         auto t_scope = this->currentScope;
         this->currentScope = scope;
-        auto ret = run(func->body);
+        ret = run(func->body);
         this->currentScope = t_scope;
-        return ret;
     }
-    return {};
+    return ret;
 }
 
-Variable Interpreter::run(FunctionDefinition* func) {
-    this->currentScope->functions[func->identifier] = func;
-    return {func};
+Type Interpreter::run(FunctionDefinition* func) {
+    return this->currentScope->val[func->identifier] = Type(func);;
 }
 
-Variable Interpreter::run(AST::VariableDefinition* def) {
-    auto val =  run(def->expression);
-    this->currentScope->variables[def->identifier] = val;
-    return val;
+Type Interpreter::run(AST::VariableDefinition* def) {
+    return this->currentScope->val[def->identifier] = run(def->expression);
 }
 
-Variable Interpreter::run(AST::BinaryOperator *op) {
+Type Interpreter::run(AST::BinaryOperator *op) {
     auto l = run(op->l);
     auto r = run(op->r);
+    if (l.type == TypeT::unknown || r.type == TypeT::unknown)
+        Log::error("Unknown types for binary operator", op->loc);
     switch (op->op) {
-        // TODO only handling numbers
-        case Token::plus: {
-            return Variable(l.i + r.i);
-        }
-        case Token::star: {
-            return Variable(l.i * r.i);
-        }
+        case Token::plus: return Type::add(l, r);
+        case Token::minus: return Type::minus(l, r);
+        case Token::star: return Type::multiply(l, r);
+        case Token::slash: return Type::divide(l, r);
         case Token::assign: {
             // FIXME horrible
             auto id = (Identifier*)op->l;
             auto [var,scope] = this->currentScope->search(id->identifier); // FIXME Extremely scuffed atm
             if (var.has_value()) {
-                scope->variables[id->identifier] = r;
+                scope->val[id->identifier] = r;
             }
             else {
-                Log::warning("Attempt to set undefined variable \"" + l.s + "\"", op->loc);
+                Log::warning("Attempt to set undefined variable \"" + l.string->val + "\"", op->loc);
             }
             return r;
         }
@@ -141,7 +127,7 @@ Variable Interpreter::run(AST::BinaryOperator *op) {
     Log::error("No binary operator \"" + token_to_string(op->op) + "\"", op->loc);
 }
 
-Variable Interpreter::run(AST::Identifier *identifier) {
+Type Interpreter::run(AST::Identifier *identifier) {
     auto& str = static_cast<Identifier*>(identifier)->identifier;
     auto [_v,_] = currentScope->search(str);
     if (!_v.has_value()) {
@@ -153,45 +139,37 @@ Variable Interpreter::run(AST::Identifier *identifier) {
 }
 
 // TODO this needs fixing up
-Variable Interpreter::run(AST::NamespaceDeclaration *def) {
-    auto ns = Variable();
-    ns.type = Variable::TYPE::NS;
+Type Interpreter::run(AST::NamespaceDeclaration *def) {
+    auto ns = Type();
+    ns.type = TypeT::ns;
     ns.ns = new Scope();
     auto this_scope = this->currentScope;
     this->currentScope = ns.ns;
     run(def->statements);
     // Hide everything
-    auto ns_inner_scope = Variable();
-    ns_inner_scope.type = Variable::TYPE::NS;
-    ns_inner_scope.ns = this->currentScope;
-    ns_inner_scope.ns->is_ns = true;
-    auto ns_scope = new Scope();
-    ns_scope->variables[""] = ns_inner_scope;
     this->currentScope = this_scope;
-    ns.ns = ns_scope;
 
     // Demangle names and copy to outer scope the ones we care about
-    auto& ns_vars = ns_inner_scope.ns->variables;
+    auto& ns_vars = ns.ns->val;
     for (auto i = ns_vars.begin(); i != ns_vars.end(); ++i) {
         auto [id, var] = *i;
         if (id[0] == ':') {
-            ns_scope->variables[id.substr(2)] = var;
             ns_vars[id.substr(2)] = var;
         }
     }
     return ns;
 }
 
-Variable Interpreter::run(AST::NSMemberDeclaration* def) {
+Type Interpreter::run(AST::NSMemberDeclaration* def) {
     auto var = run(def->expression);
     var.constant = true;
-    this->currentScope->variables["::" + def->identifier] = var;
+    this->currentScope->val["::" + def->identifier] = var;
     return var;
 }
 
-Variable Interpreter::run(AST::ConstDefinition *def) {
+Type Interpreter::run(AST::ConstDefinition *def) {
     auto var = run(def->expression);
     var.constant = true;
-    this->currentScope->variables[def->identifier] = var;
+    this->currentScope->val[def->identifier] = var;
     return var;
 }
