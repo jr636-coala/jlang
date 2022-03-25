@@ -34,6 +34,10 @@ Type::Type(AST::FunctionDefinition* fn) {
 
 // Binary operators
 
+void logOperatorError(Token token, Type a, Type b) {
+    Log::error("No " + token_to_string(token) + " operator defined for " + typeT_to_string(a.type) + " with " + typeT_to_string(b.type), {});
+}
+
 Type Type::plus(Type a, Type b) {
     if (a.type == b.type) {
         switch (a.type) {
@@ -45,7 +49,7 @@ Type Type::plus(Type a, Type b) {
         if (a.type == TypeT::string && b.type == TypeT::i64) return Type(a.string->val + std::to_string(*b.i64));
         if (a.type == TypeT::i64 && b.type == TypeT::string) return Type(std::to_string(*a.i64) + b.string->val);
     }
-    Log::error("No plus operator defined for " + typeT_to_string(a.type) + " with " + typeT_to_string(b.type), {});
+    logOperatorError(Token::plus, a, b);
 }
 Type Type::minus(Type a, Type b) {
     if (a.type == b.type) {
@@ -53,6 +57,7 @@ Type Type::minus(Type a, Type b) {
             case TypeT::i64: return Type(*a.i64 - *b.i64);
         }
     }
+    logOperatorError(Token::minus, a, b);
 }
 Type Type::slash(Type a, Type b) {
     if (a.type == b.type) {
@@ -60,6 +65,7 @@ Type Type::slash(Type a, Type b) {
             case TypeT::i64: return Type(*a.i64 / *b.i64);
         }
     }
+    logOperatorError(Token::slash, a, b);
 }
 Type Type::star(Type a, Type b) {
     if (a.type == b.type) {
@@ -67,12 +73,20 @@ Type Type::star(Type a, Type b) {
             case TypeT::i64: return Type(*a.i64 * *b.i64);
         }
     }
+    logOperatorError(Token::star, a, b);
 }
 
 Type Type::plusEqual(Type& a, Type b) {
     if (a.type == b.type) {
         return a = Type::plus(a, b);
     }
+    logOperatorError(Token::plusequal, a, b);
+}
+Type Type::minusEqual(Type& a, Type b) {
+    if (a.type == b.type) {
+        return a = Type::minus(a, b);
+    }
+    logOperatorError(Token::minusequal, a, b);
 }
 
 std::pair<std::optional<Type>, TypeI<TypeT::ns>*> TypeI<TypeT::ns>::search(std::string str) {

@@ -2,10 +2,12 @@
 #include <algorithm>
 #include <fstream>
 #include <sstream>
+#include <filesystem>
 
 #include "parser.hpp"
 #include "interpreter.hpp"
 #include "c.hpp"
+
 
 std::string loadFile(const std::string& path) {
     std::ifstream file(path);
@@ -15,7 +17,8 @@ std::string loadFile(const std::string& path) {
 }
 
 int main(int argc, char** argv) {
-    auto tokeniser = Tokeniser(loadFile("progs/sb.jl"));
+    auto path = argv[1];
+    auto tokeniser = Tokeniser(loadFile(path), path);
     auto tokens = tokeniser.getTokens();
     //printTokens(tokens);
     auto parser = Parser(tokens);
@@ -55,7 +58,22 @@ int main(int argc, char** argv) {
         return Type();
     };
 
-    auto interpreter = Interpreter(ast);
+    Interpreter::compilerFuncs["#module"] = [](auto& interp, auto&, const auto& args) {
+        auto path =
+                std::filesystem::path(interp.filename).parent_path().string()
+                + "/"
+                + args[args.size() > 1 ? 1 : 0].string->val;
+        auto tokens = Tokeniser(loadFile(path), path).getTokens();
+        auto ast = Parser(tokens).parseModule();
+        auto module = Interpreter(ast, path).interpModule();
+        if (args.size() > 1) {
+            auto name = args[0].string->val;
+            interp.currentScope->val[name] = module;
+        }
+        return module;
+    };
+
+    auto interpreter = Interpreter(ast, path);
     std::cout << *interpreter.interp().i64;
 
     return 0;

@@ -13,12 +13,12 @@ public:
     Parser(auto& tokens) : tokens(tokens) {}
 
     auto parse() -> AST::StatementList*;
+    auto parseModule() -> AST::NamespaceDeclaration*;
 
     static void printAST(AST::Node*, int level = 0);
 
 private:
     AST::StatementList* parse_statementList();
-    auto parse_statementList_prime() -> AST::StatementList*;
 
     auto parse_expressionList() -> AST::ExpressionList*;
 
@@ -57,6 +57,7 @@ private:
     long index {0};
     std::vector<TokenInfo> tokens;
     AST::StatementList* program;
+    AST::NamespaceDeclaration* module;
 };
 
 

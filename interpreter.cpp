@@ -22,6 +22,10 @@ Type Interpreter::interp() {
     c->arguments = new ExpressionList();
     return run(c.get());
 }
+Type Interpreter::interpModule() {
+    currentScope = new Scope;
+    return run(program);;
+}
 
 Type Interpreter::run(Node* node) {
     switch(node->type) {
@@ -33,11 +37,12 @@ Type Interpreter::run(Node* node) {
         case NodeType::identifier:           return run((Identifier*)node);
         case NodeType::binaryoperator:       return run((BinaryOperator*)node);
         case NodeType::namespacedeclaration: return run((NamespaceDeclaration*)node);
+        case NodeType::poddefinition:        return run((PodDefinition*)node);
         case NodeType::nsmemberdeclaration:  return run((NSMemberDeclaration*)node);
         case NodeType::conditionalstatement: return run((ConditionalStatement*)node);
         case NodeType::whilestatement:       return run((WhileStatement*)node);
 
-        case NodeType::number:               return Type(std::stoi(((Number*)node)->number));
+        case NodeType::number:               return Type(std::stoll(((Number*)node)->number));
         case NodeType::string:               return Type(((String*)node)->string);
     }
     Log::error("Unhandled ast node type \"" + node_type_to_string(node->type) + "\"", node->loc);
@@ -132,8 +137,14 @@ Type Interpreter::run(AST::BinaryOperator *op) {
             auto [_, scope] = this->currentScope->search(id->identifier);
             return Type::plusEqual(scope->val[id->identifier], r);
         }
+        case Token::minusequal: {
+            auto id = (Identifier*)op->l;
+            auto [_, scope] = this->currentScope->search(id->identifier);
+            return Type::minusEqual(scope->val[id->identifier], r);
+        }
     }
     Log::error("No binary operator \"" + token_to_string(op->op) + "\"", op->loc);
+    exit(0);
 }
 
 Type Interpreter::run(AST::Identifier *identifier) {
@@ -149,9 +160,7 @@ Type Interpreter::run(AST::Identifier *identifier) {
 
 // TODO this needs fixing up
 Type Interpreter::run(AST::NamespaceDeclaration *def) {
-    auto ns = Type();
-    ns.type = TypeT::ns;
-    ns.ns = new Scope();
+    auto ns = Type(TypeT::ns);
     ns.ns->parentScope = this->currentScope;
     auto this_scope = this->currentScope;
     this->currentScope = ns.ns;
@@ -168,6 +177,26 @@ Type Interpreter::run(AST::NamespaceDeclaration *def) {
         }
     }
     return ns;
+}
+Type Interpreter::run(AST::PodDefinition *def) {
+    auto pod = Type(TypeT::pod);
+    pod.pod->val.name = def->name;
+    pod.pod->val.content.parentScope = this->currentScope;
+    auto this_scope = this->currentScope;
+    this->currentScope = &pod.pod->val.content;
+    run(def->body);
+    // Hide everything
+    this->currentScope = this_scope;
+
+    // Demangle names and copy to outer scope the ones we care about
+    auto& pod_vars = pod.pod->val.content.val;
+    for (auto i = pod_vars.begin(); i != pod_vars.end(); ++i) {
+        auto [id, var] = *i;
+        if (id[0] == ':') {
+            pod_vars[id.substr(2)] = var;
+        }
+    }
+    return pod;
 }
 
 Type Interpreter::run(AST::NSMemberDeclaration* def) {

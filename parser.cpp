@@ -39,26 +39,39 @@ TokenInfo Parser::eat(std::vector<Token> tokenType) {
 using namespace AST;
 
 auto Parser::parse() -> StatementList* {
-    program = parse_statementList();
+    program = new StatementList();
+    Statement* statement;
+    while(index < tokens.size() && (statement = parse_statement())) {
+        program->statements.push_back(statement);
+        std::cout << index << '\n';
+    }
     return program;
 }
 
-StatementList* Parser::parse_statementList() {
-    auto node = new StatementList();
-    auto f_statement = parse_statement();
-    if (f_statement == nullptr) return node;
-    node->statements.push_back(f_statement);
-    while(currentToken() == Token::semicolon) {
-        eat(Token::semicolon);
-        // Not sure if I should be doing this here
-        if (currentToken() == Token::rcurly || currentToken() == Token::null) break;
-        node->statements.push_back(parse_statement());
+auto Parser::parseModule() -> AST::NamespaceDeclaration * {
+    module = new NamespaceDeclaration();
+    module->statements = new StatementList();
+    Statement* statement;
+    while(index < tokens.size() && (statement = parse_statement())) {
+        module->statements->statements.push_back(statement);
+        std::cout << index << '\n';
     }
-    return node;
+    return module;
 }
-StatementList* Parser::parse_statementList_prime() {
+
+StatementList* Parser::parse_statementList() {
     eat(Token::lcurly);
-    auto node = parse_statementList();
+    auto node = new StatementList();
+    if (currentToken() == Token::rcurly) {
+        eat(Token::rcurly);
+        return node;
+    }
+    auto f_statement = parse_statement();
+    node->statements.push_back(f_statement);
+    Statement* statement;
+    while(currentToken() != Token::rcurly && (statement = parse_statement())) {
+        node->statements.push_back(statement);
+    }
     eat(Token::rcurly);
     return node;
 }
@@ -80,6 +93,10 @@ ExpressionList* Parser::parse_expressionList() {
 
 Statement* Parser::parse_statement() {
     switch (currentToken()) {
+        case Token::semicolon: {
+            eat(Token::semicolon);
+            return parse_statement();
+        }
         case Token::dcolon: {
             eat(Token::dcolon);
             auto node = new NSMemberDeclaration();
@@ -99,7 +116,7 @@ Statement* Parser::parse_statement() {
             node->condition = parse_expression();
             eat(Token::rparen);
             if (currentToken() == Token::lcurly) {
-                node->_true = parse_statementList_prime();
+                node->_true = parse_statementList();
             }
             else {
                 node->_true = parse_statement();
@@ -107,7 +124,7 @@ Statement* Parser::parse_statement() {
             if (currentToken() == Token::telse) {
                 eat(Token::telse);
                 if (currentToken() == Token::lcurly) {
-                    node->_else = parse_statementList_prime();
+                    node->_else = parse_statementList();
                 }
                 else {
                     node->_else = parse_statement();
@@ -122,11 +139,18 @@ Statement* Parser::parse_statement() {
             node->condition = parse_expression();
             eat(Token::rparen);
             if (currentToken() == Token::lcurly) {
-                node->body = parse_statementList_prime();
+                node->body = parse_statementList();
             }
             else {
                 node->body = parse_statement();
             }
+            return node;
+        }
+        case Token::pod: {
+            eat(Token::pod);
+            auto node = new PodDefinition();
+            node->name = eat(Token::identifier).match;
+            node->body = parse_statementList();
             return node;
         }
     }
@@ -192,6 +216,7 @@ AST::Expression* Parser::parse_expression_3() {
     switch (currentToken()) {
         case Token::assign: return new BinaryOperator(l, eat(Token::assign), parse_expression_3());
         case Token::plusequal: return new BinaryOperator(l, eat(Token::plusequal), parse_expression_3());
+        case Token::minusequal: return new BinaryOperator(l, eat(Token::minusequal), parse_expression_3());
     }
     return l;
 }
@@ -215,7 +240,7 @@ FunctionDefinition* Parser::parse_functionDefinition() {
     eat(Token::lparen);
     node->parameters = parse_identifierList();
     eat(Token::rparen);
-    node->body = parse_statementList_prime();
+    node->body = parse_statementList();
     return node;
 }
 
@@ -311,6 +336,6 @@ AST::ConstDefinition* Parser::parse_constDefinition() {
 AST::NamespaceDeclaration* Parser::parse_namespace() {
     eat(Token::dcolon);
     auto node = new NamespaceDeclaration();
-    node->statements = parse_statementList_prime();
+    node->statements = parse_statementList();
     return node;
 }

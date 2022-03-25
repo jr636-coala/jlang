@@ -1,58 +1,50 @@
-const mstring = ::{
-    ::len = fn(str: string) {
-        return #c("strlen", str);
-    };
-};
+const file = #module("file.jlm");
 
-const file = :: {
-    ::open = fn (path : string) {
-        return #c("fopenw", path);
-    };
-    ::close = fn (file : i64) {
-        return #c("fclose", file);
-    };
-    ::fwrite = fn (file : i64, content : string) {
-        return #c("fwrite", content, mstring::len(content), file);
-    };
-};
+// The syntax highlighting is horrible for this so am wrapping it
+fn print(str : string) { #output(str); }
+
+pod obj {
+}
 
 const TRUE = 1;
 const FALSE = 0;
 
 fn main() {
-    #output("Hello, World!");
+    print(print("Hello, World!"));
 
-    /* Multiline comment */
+    /*
+        Multiline comment
+    */
 
-    #output("Length of string " + mstring::len("Hello"));
-    #output(#loc());
+    print("Length of string " + file::mstring::len("Hello"));
+    print("I am currently at : " + #loc());
 
     let y = 10;
     fn abc(x : i8) {
         y += x;
         return y;
-    };
+    }
 
     let i = 10;
     while(i) {
-        #output(i);
-        i = i - 1;
-    };
+        print(i);
+        i -= 1;
+    }
 
     if (FALSE) {
-        #output("It is true");
+        print("It is true");
     }
     else {
-        #output("It is false");
-    }; // Sort out this horrible semicolon stuff
+        print("It is false");
+    }
 
     // File testing
-    let f = file::open("test.txt");
-    file::fwrite(f, "Hello World\n");
-    file::close(f);
+    //let f = file::open("test.txt");
+    //file::fwrite(f, "Hello World\n");
+    //file::close(f);
 
 
     return abc(9999999);
-};
+}
 
 #entry(main);

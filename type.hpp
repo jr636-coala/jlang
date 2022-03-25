@@ -70,6 +70,7 @@ struct Type {
     static Type star(Type a, Type b);
 
     static Type plusEqual(Type& a, Type b);
+    static Type minusEqual(Type& a, Type b);
 
     union {
         TypeI<TypeT::i8>* i8;

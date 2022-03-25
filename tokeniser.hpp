@@ -23,6 +23,7 @@
   _(comma, ",")   \
   _(plusequal, "+=") \
   _(plus, "+")    \
+  _(minusequal, "-=") \
   _(minus, "-")   \
   _(perc, "%")    \
   _(star, "*")    \
@@ -53,7 +54,8 @@
   _(let, "let")  \
   _(tconst, "const")\
   _(number, "") \
-  _(ret, "return")
+  _(ret, "return") \
+  _(pod, "pod")
 
 enum class Token {
 #define TOKEN_FUNC(T, S) T,

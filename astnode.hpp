@@ -28,7 +28,8 @@
   _(index)\
   _(returnstatement)    \
   _(conditionalstatement) \
-  _(whilestatement)
+  _(whilestatement) \
+  _(poddefinition)
 
 namespace AST {
     enum class NodeType {
@@ -143,6 +144,12 @@ namespace AST {
         WhileStatement() : Statement(NodeType::whilestatement) {}
         Expression* condition {};
         Statement* body {};
+    };
+
+    struct PodDefinition : Expression {
+        PodDefinition() : Expression(NodeType::poddefinition) {}
+        std::string name;
+        StatementList* body;
     };
 }
 
