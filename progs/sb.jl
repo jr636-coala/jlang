@@ -16,6 +16,9 @@ const file = :: {
     };
 };
 
+const TRUE = 1;
+const FALSE = 0;
+
 fn main() {
     #output("Hello, World!");
 
@@ -30,6 +33,18 @@ fn main() {
         return y;
     };
 
+    let i = 10;
+    while(i) {
+        #output(i);
+        i = i - 1;
+    };
+
+    if (FALSE) {
+        #output("It is true");
+    }
+    else {
+        #output("It is false");
+    }; // Sort out this horrible semicolon stuff
 
     // File testing
     let f = file::open("test.txt");

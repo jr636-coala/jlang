@@ -47,7 +47,8 @@
   _(str, "string") \
   _(identifier, "") \
   _(fn, "fn") \
-  _(tif, "if") \
+  _(tif, "if")    \
+  _(telse, "else") \
   _(twhile, "while")\
   _(let, "let")  \
   _(tconst, "const")\

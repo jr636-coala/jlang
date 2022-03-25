@@ -34,6 +34,8 @@ Type Interpreter::run(Node* node) {
         case NodeType::binaryoperator:       return run((BinaryOperator*)node);
         case NodeType::namespacedeclaration: return run((NamespaceDeclaration*)node);
         case NodeType::nsmemberdeclaration:  return run((NSMemberDeclaration*)node);
+        case NodeType::conditionalstatement: return run((ConditionalStatement*)node);
+        case NodeType::whilestatement:       return run((WhileStatement*)node);
 
         case NodeType::number:               return Type(std::stoi(((Number*)node)->number));
         case NodeType::string:               return Type(((String*)node)->string);
@@ -180,4 +182,29 @@ Type Interpreter::run(AST::ConstDefinition *def) {
     var.constant = true;
     this->currentScope->val[def->identifier] = var;
     return var;
+}
+
+Type Interpreter::run(AST::ConditionalStatement* def) {
+    auto condition = run(def->condition);
+    if (valueIsTrue(condition)) {
+        return run(def->_true);
+    }
+    else if (def->_else) {
+        return run(def->_else);
+    }
+    return {};
+}
+
+Type Interpreter::run(AST::WhileStatement* def) {
+    while(valueIsTrue(run(def->condition))) run(def->body);
+    return {};
+}
+
+bool Interpreter::valueIsTrue(Type val) {
+    bool met = false;
+    switch (val.type) {
+        case TypeT::i64: met = *val.i64; break;
+        case TypeT::string: met = val.string->val.length(); break;
+    }
+    return met;
 }

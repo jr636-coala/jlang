@@ -32,10 +32,14 @@ private:
     Type run(AST::ConstDefinition* def);
     Type run(AST::NamespaceDeclaration* def);
     Type run(AST::NSMemberDeclaration* def);
+    Type run(AST::ConditionalStatement* def);
+    Type run(AST::WhileStatement* def);
     Type run(AST::BinaryOperator* op);
     Type run(AST::Identifier* identifier);
 
     std::vector<Type> resolveExpressionList(AST::ExpressionList* list);
+
+    bool valueIsTrue(Type val);
 
     Scope* currentScope;
     AST::StatementList* program;

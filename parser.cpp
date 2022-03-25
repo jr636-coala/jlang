@@ -92,6 +92,43 @@ Statement* Parser::parse_statement() {
             eat(Token::ret);
             return new ReturnStatement(parse_expression());
         }
+        case Token::tif: {
+            eat(Token::tif);
+            eat(Token::lparen);
+            auto node = new ConditionalStatement();
+            node->condition = parse_expression();
+            eat(Token::rparen);
+            if (currentToken() == Token::lcurly) {
+                node->_true = parse_statementList_prime();
+            }
+            else {
+                node->_true = parse_statement();
+            }
+            if (currentToken() == Token::telse) {
+                eat(Token::telse);
+                if (currentToken() == Token::lcurly) {
+                    node->_else = parse_statementList_prime();
+                }
+                else {
+                    node->_else = parse_statement();
+                }
+            }
+            return node;
+        }
+        case Token::twhile: {
+            eat(Token::twhile);
+            eat(Token::lparen);
+            auto node = new WhileStatement();
+            node->condition = parse_expression();
+            eat(Token::rparen);
+            if (currentToken() == Token::lcurly) {
+                node->body = parse_statementList_prime();
+            }
+            else {
+                node->body = parse_statement();
+            }
+            return node;
+        }
     }
 
     return parse_expression();

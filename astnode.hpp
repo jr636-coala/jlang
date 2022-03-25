@@ -26,7 +26,9 @@
   _(string)               \
   _(identifier)           \
   _(index)\
-  _(returnstatement)
+  _(returnstatement)    \
+  _(conditionalstatement) \
+  _(whilestatement)
 
 namespace AST {
     enum class NodeType {
@@ -128,6 +130,19 @@ namespace AST {
     struct Number : Expression {
         Number(const auto& number) : Expression(NodeType::number), number(number) {}
         std::string number;
+    };
+
+    struct ConditionalStatement : Statement {
+        ConditionalStatement() : Statement(NodeType::conditionalstatement) {}
+        Expression* condition {};
+        Statement* _true {};
+        Statement* _else {};
+    };
+
+    struct WhileStatement : Statement {
+        WhileStatement() : Statement(NodeType::whilestatement) {}
+        Expression* condition {};
+        Statement* body {};
     };
 }
 
