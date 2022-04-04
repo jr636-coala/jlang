@@ -1,0 +1,11 @@
+#module("mstring", "mstring.jlm");
+
+::open = fn (path : string) {
+    return #c("fopenw", path);
+};
+::close = fn (file : i64) {
+    return #c("fclose", file);
+};
+::fwrite = fn (file : i64, content : string) {
+    return #c("fwrite", content, mstring::len(content), file);
+};

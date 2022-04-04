@@ -8,44 +8,10 @@
 #include <vector>
 #include <cstdint>
 #include <unordered_map>
-#include <string>
-#include "astnode.hpp"
 #include <memory>
 #include <optional>
-
-#define TYPES(_) \
-  _(i8, "i8")\
-  _(i16, "i16")\
-  _(i32, "i32")\
-  _(i64, "i64")  \
-  _(u8, "u8")\
-  _(u16, "u16")\
-  _(u32, "u32")\
-  _(u64, "u64")  \
-  _(f32, "f32")  \
-  _(f64, "f64")  \
-  _(c, "char")   \
-  _(string, "string")   \
-  _(arr, "[]")   \
-  _(pointer, "*")\
-  _(reference, "&") \
-  _(ns, "ns")    \
-  _(pod, "pod") \
-  _(fn, "fn")
-
-enum class TypeT {
-    unknown,
-#define TYPE_FUNC(T, S) T,
-    TYPES(TYPE_FUNC)
-};
-
-inline std::string typeT_to_string(TypeT type) {
-    switch (type) {
-#define TYPE_FUNC(T, S) case(TypeT::T): return #T;
-        TYPES(TYPE_FUNC)
-        default: return "# BROKEN : INVALID TYPE_T #";
-    }
-}
+#include "typet.hpp"
+#include "astnode.hpp"
 
 template <TypeT T>
 struct TypeI {};
@@ -59,7 +25,7 @@ struct Type {
 
     Type(std::int64_t x);
 
-    Type(AST::FunctionDefinition *fn);
+    //Type(AST::FunctionDefinition *fn);
 
     TypeT type;
     bool constant {};
@@ -202,7 +168,8 @@ struct TypeI<TypeT::pod> {
 
 template <>
 struct TypeI<TypeT::fn> {
-    AST::FunctionDefinition* val;
+    Type type;
+    AST::Node val;
     operator auto&() { return val; }
 };
 

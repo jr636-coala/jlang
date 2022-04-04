@@ -1,0 +1,3 @@
+::len = fn(str: string) {
+    return #c("strlen", str);
+}

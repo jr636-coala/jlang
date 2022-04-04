@@ -10,6 +10,7 @@
 #include <vector>
 #include <experimental/array>
 #include "loc.hpp"
+#include "typet.hpp"
 
 #define TOKENS(_) \
   _(null, "") \
@@ -30,10 +31,13 @@
   _(slash, "/")   \
   _(bslah, "\\")  \
   _(dcolon, "::") \
-  _(colon, ":")\
+  _(colon, ":") \
   _(string, "")   \
   _(equal, "==") \
   _(assign, "=")  \
+  _(andd, "&&") \
+  _(orr, "||") \
+  _(band, "&") \
   _(i8, "i8") \
   _(i16, "i16") \
   _(i32, "i32") \
@@ -79,6 +83,26 @@ constexpr auto TypeTokens = {
         Token::c,
         Token::str
 };
+
+inline TypeT token_to_type(Token token) {
+    switch(token) {
+        case Token::i8: return TypeT::i8;
+        case Token::i16: return TypeT::i16;
+        case Token::i32: return TypeT::i32;
+        case Token::i64: return TypeT::i64;
+
+        case Token::u8: return TypeT::u8;
+        case Token::u16: return TypeT::u16;
+        case Token::u32: return TypeT::u32;
+        case Token::u64: return TypeT::u64;
+
+        case Token::f32: return TypeT::f32;
+        case Token::f64: return TypeT::f64;
+
+        case Token::c: return TypeT::c;
+        case Token::str: return TypeT::string;
+    }
+}
 
 inline std::string token_to_string(Token token) {
     switch (token) {

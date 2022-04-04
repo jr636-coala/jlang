@@ -4,6 +4,7 @@
 
 #include "type.hpp"
 #include "log.hpp"
+#include "tokeniser.hpp"
 
 void setupType(Type* type, TypeT tt) {
     type->type = tt;
@@ -27,10 +28,10 @@ Type::Type(std::int64_t x) {
     setupType(this, TypeT::i64);
     i64->val = x;
 }
-Type::Type(AST::FunctionDefinition* fn) {
-    setupType(this, TypeT::fn);
-    this->fn->val = fn;
-}
+//Type::Type(AST::FunctionDefinition* fn) {
+//    setupType(this, TypeT::fn);
+//    this->fn->val = fn;
+//}
 
 // Binary operators
 

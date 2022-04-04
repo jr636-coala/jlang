@@ -6,7 +6,7 @@
 
 #include "parser.hpp"
 #include "interpreter.hpp"
-#include "c.hpp"
+#include "runtime.hpp"
 
 
 std::string loadFile(const std::string& path) {
@@ -28,7 +28,7 @@ int main(int argc, char** argv) {
 
     // Define compilerFuncs
     Interpreter::compilerFuncs["#entry"] = [](auto& inter, auto&, const auto& args) -> Type {
-        inter.entry = args[0].fn->val->identifier;
+        inter.entry = args[0].fn->val.identifier.name;
         std::cout << inter.entry << " : entry " << '\n';
     };
     Interpreter::compilerFuncs["#loc"] = [](auto&, auto& loc, const auto&){
@@ -40,21 +40,21 @@ int main(int argc, char** argv) {
         std::string out;
         for (auto i = 0; i < args.size(); ++i) {
             switch (args[i].type) {
-                case TypeT::i64: out = std::to_string(args[i].i64->val); break;
-                case TypeT::string: out = args[i].string->val; break;
-                default: out = "UNHANDLED OUT";
+                case TypeT::i64: out += std::to_string(args[i].i64->val); break;
+                case TypeT::string: out += args[i].string->val; break;
+                default: out += "UNHANDLED OUT";
             }
         }
-        JL_C::jl_puts(out.c_str());
+        std::cout << out << '\n';
     };
     Interpreter::compilerFuncs["#c"] = [](auto&, auto& loc, const auto& args) {
         const auto name = args[0].string->val;
-             if (name == "puts") return Type(JL_C::jl_puts(args[1].string->val.c_str()));
-        else if (name == "strlen") return Type(JL_C::jl_strlen(args[1].string->val.c_str()));
-        else if (name == "fopenw") return Type(JL_C::jl_fopenw(args[1].string->val.c_str()));
-        else if (name == "fclose") return Type(JL_C::jl_fclose(*args[1].i64));
-        else if (name == "fwrite") return Type(JL_C::jl_fwrite(args[1].string->val.c_str(), *args[2].i64, *args[3].i64));
-        else if (name == "system") return Type(JL_C::jl_system(args[1].string->val.c_str()));
+             if (name == "puts") return Type(JL_C::jl_puts(args[1]));
+        else if (name == "strlen") return Type(JL_C::jl_strlen(args[1]));
+        else if (name == "fopenw") return Type(JL_C::jl_fopenw(args[1]));
+        else if (name == "fclose") return Type(JL_C::jl_fclose(args[1]));
+        else if (name == "fwrite") return Type(JL_C::jl_fwrite(args[1], args[2]));
+        else if (name == "system") return Type(JL_C::jl_system(args[1]));
         return Type();
     };
 
