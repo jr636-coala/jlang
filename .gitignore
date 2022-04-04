@@ -1,3 +1,5 @@
 cmake-build-debug/
 .idea/
 progs/grammar/
+bin/
+lang.tab.cc
