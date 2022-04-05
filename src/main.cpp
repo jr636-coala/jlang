@@ -16,6 +16,13 @@ std::string loadFile(const std::string& path) {
     return ss.str();
 }
 
+void printTokens(std::vector<TokenInfo> tokens) {
+    for (auto i = 0; i < tokens.size(); ++i) {
+        std::cout << tokens[i] << ' ';
+    }
+    std::cout << '\n';
+}
+
 int main(int argc, char** argv) {
     auto path = argv[1];
     auto tokeniser = Tokeniser(loadFile(path), path);
@@ -27,16 +34,16 @@ int main(int argc, char** argv) {
     std::cout << "\n\nPROGRAM OUTPUT:\n";
 
     // Define compilerFuncs
-    Interpreter::compilerFuncs["#entry"] = [](auto& inter, auto&, const auto& args) -> Type {
+    Interpreter::compilerFuncs["#entry"] = [](auto& inter, auto&, const auto& args) -> TypeVal {
         inter.entry = args[0].fn->val.identifier.name;
         std::cout << inter.entry << " : entry " << '\n';
     };
     Interpreter::compilerFuncs["#loc"] = [](auto&, auto& loc, const auto&){
-        Type ret(TypeT::string);
+        TypeVal ret(TypeT::string);
         ret.string->val = loc;
         return ret;
     };
-    Interpreter::compilerFuncs["#output"] = [](auto&, auto&, const auto& args) -> Type {
+    Interpreter::compilerFuncs["#output"] = [](auto&, auto&, const auto& args) -> TypeVal {
         std::string out;
         for (auto i = 0; i < args.size(); ++i) {
             switch (args[i].type) {
@@ -49,13 +56,13 @@ int main(int argc, char** argv) {
     };
     Interpreter::compilerFuncs["#c"] = [](auto&, auto& loc, const auto& args) {
         const auto name = args[0].string->val;
-             if (name == "puts") return Type(JL_C::jl_puts(args[1]));
-        else if (name == "strlen") return Type(JL_C::jl_strlen(args[1]));
-        else if (name == "fopenw") return Type(JL_C::jl_fopenw(args[1]));
-        else if (name == "fclose") return Type(JL_C::jl_fclose(args[1]));
-        else if (name == "fwrite") return Type(JL_C::jl_fwrite(args[1], args[2]));
-        else if (name == "system") return Type(JL_C::jl_system(args[1]));
-        return Type();
+             if (name == "puts") return TypeVal(JL_C::jl_puts(args[1]));
+        else if (name == "strlen") return TypeVal(JL_C::jl_strlen(args[1]));
+        else if (name == "fopenw") return TypeVal(JL_C::jl_fopenw(args[1]));
+        else if (name == "fclose") return TypeVal(JL_C::jl_fclose(args[1]));
+        else if (name == "fwrite") return TypeVal(JL_C::jl_fwrite(args[1], args[2]));
+        else if (name == "system") return TypeVal(JL_C::jl_system(args[1]));
+        return TypeVal();
     };
 
     Interpreter::compilerFuncs["#module"] = [](auto& interp, auto&, const auto& args) {

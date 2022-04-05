@@ -33,16 +33,11 @@ enum class TypeT {
     TYPES(TYPE_FUNC)E
 };
 
-struct TypeName {
-    TypeT type;
-    std::string name;
-};
-
 inline std::string typeT_to_string(TypeT type) {
     switch (type) {
 #define TYPE_FUNC(T, S) case(TypeT::T): return S;
         TYPES(TYPE_FUNC)
-        default: return "# BROKEN : INVALID TYPE_T #";
+        default: return "unknown";
     }
 }
 

@@ -11,7 +11,7 @@ using namespace AST;
 
 std::unordered_map<std::string, Interpreter::compilerfunc_t> Interpreter::compilerFuncs = {};
 
-Type Interpreter::interp() {
+TypeVal Interpreter::interp() {
     if (!currentScope) delete currentScope;
     currentScope = new Scope;
     return run(program);
@@ -22,35 +22,35 @@ Type Interpreter::interp() {
     //c->arguments = new ExpressionList();
     //return run(c.get());
 }
-Type Interpreter::interpModule() {
+TypeVal Interpreter::interpModule() {
     currentScope = new Scope;
     return run(program);
 }
 
-Type Interpreter::run(Node node) {
+TypeVal Interpreter::run(Node node) {
     switch(node.type) {
-        case Node::Type::addr:          return Type();
-        case Node::Type::andd:          return Type();
-        case Node::Type::call:          return Type();
-        case Node::Type::constt:        return Type();
-        case Node::Type::deref:         return Type();
-        case Node::Type::equal:         return Type();
-        case Node::Type::func_def:      return Type();
-        case Node::Type::identifier:    return Type();
+        case Node::Type::addr:          return TypeVal();
+        case Node::Type::andd:          return TypeVal();
+        case Node::Type::call:          return TypeVal();
+        case Node::Type::constt:        return TypeVal();
+        case Node::Type::deref:         return TypeVal();
+        case Node::Type::equal:         return TypeVal();
+        case Node::Type::func_def:      return TypeVal();
+        case Node::Type::identifier:    return TypeVal();
         case Node::Type::iff:           return run_if(node);
-        case Node::Type::index:         return Type();
-        case Node::Type::let:           return Type();
-        case Node::Type::list:          return Type();
-        case Node::Type::ns:            return Type();
-        case Node::Type::orr:           return Type();
-        case Node::Type::pod_access:    return Type();
-        case Node::Type::pod_def:       return Type();
-        case Node::Type::returnn:       return Type();
-        case Node::Type::whilee:        return Type();
+        case Node::Type::index:         return TypeVal();
+        case Node::Type::let:           return TypeVal();
+        case Node::Type::list:          return TypeVal();
+        case Node::Type::ns:            return TypeVal();
+        case Node::Type::orr:           return TypeVal();
+        case Node::Type::pod_access:    return TypeVal();
+        case Node::Type::pod_def:       return TypeVal();
+        case Node::Type::returnn:       return TypeVal();
+        case Node::Type::whilee:        return TypeVal();
 
         case Node::Type::assign:
         case Node::Type::plusassign:
-        case Node::Type::minusassign:   return Type();
+        case Node::Type::minusassign:   return TypeVal();
 
         case Node::Type::minus:
         case Node::Type::plus:
@@ -58,13 +58,13 @@ Type Interpreter::run(Node node) {
         case Node::Type::slash:
         case Node::Type::perc:          return run_binOp(node);
 
-        case Node::Type::number:               return Type(std::stoll((node.value)));
-        case Node::Type::string:               return Type(node.value);
+        case Node::Type::number:               return TypeVal(std::stoll((node.value)));
+        case Node::Type::string:               return TypeVal(node.value);
     }
     Log::error("Unhandled ast node type \"" + Node::type_to_string(node.type) + "\"", node.loc);
 }
 
-Type Interpreter::run_list(Node list) {
+TypeVal Interpreter::run_list(Node list) {
     for (auto i = 0; i < list.params.size(); ++i) {
         const auto statement = list.params[i];
         if (statement.type == Node::Type::returnn) return run(statement);
@@ -72,13 +72,13 @@ Type Interpreter::run_list(Node list) {
     }
 }
 
-Type Interpreter::run_call(Node call) {
+TypeVal Interpreter::run_call(Node call) {
 
-    std::vector<Type> args;
+    std::vector<TypeVal> args;
     const auto& arg_exps = call.params[0];
     args.reserve(arg_exps.params.size());
     for (auto i = 0; i < arg_exps.params.size(); ++i) args[i] = run(arg_exps.params[i]); 
-    Type ret;
+    TypeVal ret;
 
     if (call.identifier.name[0] == '#') {
         // Call compiler function
@@ -113,24 +113,24 @@ Type Interpreter::run_call(Node call) {
     return ret;
 }
 
-Type Interpreter::run_funcDef(Node func) {
-    return this->currentScope->val[func.identifier.name] = Type(/*func*/);
+TypeVal Interpreter::run_funcDef(Node func) {
+    return this->currentScope->val[func.identifier.name] = TypeVal(/*func*/);
 }
 
-Type Interpreter::run_varDef(Node def) {
+TypeVal Interpreter::run_varDef(Node def) {
     return this->currentScope->val[def.identifier.name] = run(def.params[0]);
 }
 
-Type Interpreter::run_binOp(Node op) {
+TypeVal Interpreter::run_binOp(Node op) {
     auto l = run(op.params[0]);
     auto r = run(op.params[1]);
     if (l.type == TypeT::unknown || r.type == TypeT::unknown)
         Log::error("Unknown types for binary operator", op.loc);
     switch (op.type) {
-        case Node::Type::plus: return Type::plus(l, r);
-        case Node::Type::minus: return Type::minus(l, r);
-        case Node::Type::star: return Type::star(l, r);
-        case Node::Type::slash: return Type::slash(l, r);
+        case Node::Type::plus: return TypeVal::plus(l, r);
+        case Node::Type::minus: return TypeVal::minus(l, r);
+        case Node::Type::star: return TypeVal::star(l, r);
+        case Node::Type::slash: return TypeVal::slash(l, r);
         case Node::Type::assign: {
             // FIXME horrible
             auto [_,scope] = this->currentScope->search(op.params[0].identifier.name); // FIXME Extremely scuffed atm
@@ -139,18 +139,18 @@ Type Interpreter::run_binOp(Node op) {
         }
         case Node::Type::plusassign: {
             auto [_, scope] = this->currentScope->search(op.params[0].identifier.name);
-            return Type::plusEqual(scope->val[op.params[0].identifier.name], r);
+            return TypeVal::plusEqual(scope->val[op.params[0].identifier.name], r);
         }
         case Node::Type::minusassign: {
             auto [_, scope] = this->currentScope->search(op.params[0].identifier.name);
-            return Type::minusEqual(scope->val[op.params[0].identifier.name], r);
+            return TypeVal::minusEqual(scope->val[op.params[0].identifier.name], r);
         }
     }
     Log::error("No binary operator \"" + Node::type_to_string(op.type) + "\"", op.loc);
     exit(0);
 }
 
-Type Interpreter::run_identifier(Node identifier) {
+TypeVal Interpreter::run_identifier(Node identifier) {
     auto [_v,_] = currentScope->search(identifier.identifier.name);
     if (!_v.has_value()) {
         Log::error("Identifier \"" + identifier.identifier.name + "\" does not exist", identifier.loc);
@@ -161,8 +161,8 @@ Type Interpreter::run_identifier(Node identifier) {
 }
 
 // TODO this needs fixing up
-Type Interpreter::run_nsDef(Node def) {
-    auto ns = Type(TypeT::ns);
+TypeVal Interpreter::run_nsDef(Node def) {
+    auto ns = TypeVal(TypeT::ns);
     ns.ns->parentScope = this->currentScope;
     auto this_scope = this->currentScope;
     this->currentScope = ns.ns;
@@ -180,7 +180,7 @@ Type Interpreter::run_nsDef(Node def) {
     }*/
     return ns;
 }
-Type Interpreter::run_podDef(Node def) {
+TypeVal Interpreter::run_podDef(Node def) {
     return {};
     /*
     auto pod = Type(TypeT::pod);
@@ -203,21 +203,21 @@ Type Interpreter::run_podDef(Node def) {
     return pod;*/
 }
 
-Type Interpreter::run_nsmemDec(Node def) {
+TypeVal Interpreter::run_nsmemDec(Node def) {
     auto var = run(def.params[0]);
     var.constant = true;
     this->currentScope->val["::" + def.identifier.name] = var;
     return var;
 }
 
-Type Interpreter::run_constDef(Node def) {
+TypeVal Interpreter::run_constDef(Node def) {
     auto var = run(def.params[0]);
     var.constant = true;
     this->currentScope->val[def.identifier.name] = var;
     return var;
 }
 
-Type Interpreter::run_if(Node def) {
+TypeVal Interpreter::run_if(Node def) {
     auto condition = run(def.params[0]);
     if (valueIsTrue(condition)) {
         return run(def.params[1]);
@@ -228,12 +228,12 @@ Type Interpreter::run_if(Node def) {
     return {};
 }
 
-Type Interpreter::run_while(Node def) {
+TypeVal Interpreter::run_while(Node def) {
     while(valueIsTrue(run(def.params[0]))) run(def.params[1]);
     return {};
 }
 
-bool Interpreter::valueIsTrue(Type val) {
+bool Interpreter::valueIsTrue(TypeVal val) {
     bool met = false;
     switch (val.type) {
         case TypeT::i64: met = *val.i64; break;

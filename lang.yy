@@ -1,10 +1,3 @@
-%{
-    #include <string>
-    #include <vector>
-    int yylex();
-    void yyerror(const char*);
-%}
-
 %skeleton "lalr1.cc"
 //%define parser_class_name {lang}
 %define api.token.constructor
@@ -12,67 +5,6 @@
 %define parse.assert
 %define parse.error verbose
 %locations
-
-%code requires
-{
-    #define IDENTIFIER(_) \
-        _(unknown) \
-        _(type) \
-        _(function) \
-        _(variable) \
-        _(parameter) \
-
-    #define _(x) x,
-    enum class IdentifierT { IDENTIFIER(_) };
-    #undef _
-
-    struct Identifier {
-        IdentifierT id_type = IdentifierT::unknown;
-        std::string name;
-    };
-
-    #define EXPRESSION(_) \
-        _(null) \
-        _(plus) \
-        _(minus) \
-        _(uplus) \
-        _(uminus) \
-        _(assign) \
-        _(plusassign) \
-        _(minusassign) \
-        _(equal) \
-        _(slash) \
-        _(star) \
-        _(deref) \
-        _(addr) \
-        _(and) \
-        _(or) \
-        _(pod_access) \
-        _(call) \
-        _(index) \
-        _(ns) \
-        _(number) \
-        _(string) \
-        \
-        _(func_def) \
-        _(pod_def) \
-        _(iff) \
-        _(whilee) \
-        _(returnn) \
-        _(let) \
-        _(constt)
-
-    #define _(x) x,
-    enum class ExpressionT { IDENTIFIER(_) };
-    #undef _
-
-    struct Expression {
-        ExpressionT expression_type = ExpressionT::null;
-        std::string value;
-        Identifier identifier;
-        std::vector<Expression> params;
-    };
-}
 
 %token  PLUSASSIGN "+=" MINUSASSIGN "-=" EQUAL "=="
 %token  PLUS "+" MINUS "-" PERC "%" STAR "*" SLASH "/" BSLASH "\\" ASSIGN "=" DOT "." ADDR "&" AND "&&" OR "||" COLON ":"
@@ -89,9 +21,6 @@
 %left   "&"
 %left   "(" "["
 %right "if" "else"
-
-%type<std::string> NUMBER STRING IDENTIFIER
-//%type<Expression> expression statement
 %%
 
 module:                 statements
@@ -115,7 +44,7 @@ statement_or_body:      statement
 |                       '{' statements '}'
 
 func_def:               "fn" optional_identifier '(' param_list ')' '{' statements '}'
-|                       "fn" optional_identifier '(' param_list ')' ":" IDENTIFIER '{' statements '}'
+|                       "fn" optional_identifier '(' param_list ')' ":" type_mod '{' statements '}'
 
 optional_identifier:    IDENTIFIER
 |                       %empty
@@ -127,8 +56,13 @@ param_list:             param_list_impl
 param_list_impl:        param_list_impl ',' typed_identifier
 |                       typed_identifier
 
-typed_identifier:       IDENTIFIER ":" IDENTIFIER
+typed_identifier:       IDENTIFIER ":" type_mod
 |                       IDENTIFIER
+
+type_mod:               IDENTIFIER type_mod_impl
+type_mod_impl:          type_mod_impl "*"
+|                       "&"
+|                       %empty
 
 expression:             "::" '{' statements '}'
 |                       IDENTIFIER '(' expression_list ')'

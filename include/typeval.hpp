@@ -17,26 +17,26 @@ template <TypeT T>
 struct TypeI {};
 
 
-struct Type {
-    Type(TypeT type);
-    Type();
+struct TypeVal {
+    TypeVal(TypeT type);
+    TypeVal();
 
-    Type(const std::string &str);
+    TypeVal(const std::string &str);
 
-    Type(std::int64_t x);
+    TypeVal(std::int64_t x);
 
     //Type(AST::FunctionDefinition *fn);
 
     TypeT type;
     bool constant {};
 
-    static Type plus(Type a, Type b);
-    static Type minus(Type a, Type b);
-    static Type slash(Type a, Type b);
-    static Type star(Type a, Type b);
+    static TypeVal plus(TypeVal a, TypeVal b);
+    static TypeVal minus(TypeVal a, TypeVal b);
+    static TypeVal slash(TypeVal a, TypeVal b);
+    static TypeVal star(TypeVal a, TypeVal b);
 
-    static Type plusEqual(Type& a, Type b);
-    static Type minusEqual(Type& a, Type b);
+    static TypeVal plusEqual(TypeVal& a, TypeVal b);
+    static TypeVal minusEqual(TypeVal& a, TypeVal b);
 
     union {
         TypeI<TypeT::i8>* i8;
@@ -137,27 +137,27 @@ static_assert(sizeof(char) == 1); // 8 bit
 
 template <>
 struct TypeI<TypeT::arr> {
-    std::vector<Type> val;
+    std::vector<TypeVal> val;
     operator auto&() { return val; }
 };
 template <>
 struct TypeI<TypeT::pointer> {
-    Type* val;
+    TypeVal* val;
     operator auto&() { return val; }
 };
 template <>
 struct TypeI<TypeT::reference> {
-    Type* val;
+    TypeVal* val;
     operator auto&() { return val; }
 };
 
 template <>
 struct TypeI<TypeT::ns> {
-    std::unordered_map<std::string, Type> val;
+    std::unordered_map<std::string, TypeVal> val;
     TypeI<TypeT::ns>* parentScope {};
     operator auto&() { return val; }
 
-    std::pair<std::optional<Type>, TypeI<TypeT::ns>*> search(std::string str);
+    std::pair<std::optional<TypeVal>, TypeI<TypeT::ns>*> search(std::string str);
 };
 
 template <>
@@ -168,7 +168,7 @@ struct TypeI<TypeT::pod> {
 
 template <>
 struct TypeI<TypeT::fn> {
-    Type type;
+    TypeVal type;
     AST::Node val;
     operator auto&() { return val; }
 };

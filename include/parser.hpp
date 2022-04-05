@@ -12,8 +12,8 @@ class Parser {
 public:
     Parser(auto& tokens) : tokens(tokens) {}
 
-    auto parse() -> AST::Node;
-    auto parseModule() -> AST::Node;
+    AST::Node parse();
+    AST::Node parseModule();
 
     static void printAST(AST::Node, int level = 0);
 
@@ -28,6 +28,8 @@ private:
     AST::Node pod_def();
     AST::Node param_list(); // FIXME
     AST::Identifier typed_identifier();
+    AST::Type type_mod();
+    std::vector<TypeT> type_mod_impl();
     AST::Node expression();
     AST::Node expr_or_list();
     AST::Node expression_list();

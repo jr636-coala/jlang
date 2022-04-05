@@ -9,27 +9,19 @@
 using namespace AST;
 
 TokenInfo Parser::eat(Token tokenType) {
-    if (_index > tokens.size()) {
-        throw;
-    }
+    if (_index > tokens.size()) throw;
     const auto token = currentToken();
-    if (token == tokenType) {
-        return tokens[_index++];
-    }
+    if (token == tokenType) return tokens[_index++];
     Log::error(std::string("Could not eat ") + token_to_string(token) + " expecting " + token_to_string(tokenType), tokens[_index].loc);
     exit(0);
     //return { "", Token::null };
 }
 
 TokenInfo Parser::eat(std::vector<Token> tokenType) {
-    if (_index > tokens.size()) {
-        throw;
-    }
+    if (_index > tokens.size()) throw;
     const auto token = currentToken();
     for(auto& tokenType : tokenType) {
-        if (token == tokenType) {
-            return tokens[_index++];
-        }
+        if (token == tokenType) return tokens[_index++];
     }
     auto tokenStr = std::accumulate(tokenType.begin() + 1, tokenType.end(), token_to_string(tokenType[0]),
                                     [](auto acc, const auto& x){ return std::move(acc) + " or " + token_to_string(x); });
@@ -37,22 +29,21 @@ TokenInfo Parser::eat(std::vector<Token> tokenType) {
     exit(0);
 }
 
-auto Parser::parse() -> Node {
+Node Parser::parse() {
     program = Node(Node::Type::list);
     while(_index < tokens.size()) {
         Node stmt = statement();
-        if (stmt.type == Node::Type::null) break;
+        if (stmt.type == Node::Type::null) continue;;
         program.params.push_back(stmt);
-        std::cout << _index << '\n';
     }
     return program;
 }
 
-auto Parser::parseModule() -> Node {
+Node Parser::parseModule() {
     module = Node(Node::Type::ns);
     while(_index < tokens.size()) {
         Node stmt = statement();
-        if (stmt.type == Node::Type::null) break;
+        if (stmt.type == Node::Type::null) continue;
         module.params.push_back(stmt);
         std::cout << _index << '\n';
     }
@@ -66,11 +57,9 @@ Node Parser::statements() {
         eat(Token::rcurly);
         return node;
     }
-    auto f_statement = statement();
-    node.params.push_back(f_statement);
     while(currentToken() != Token::rcurly) {
         Node stmt = statement();
-        if (stmt.type == Node::Type::null) break;
+        if (stmt.type == Node::Type::null) continue;
         node.params.push_back(stmt);
     }
     eat(Token::rcurly);
@@ -78,9 +67,7 @@ Node Parser::statements() {
 }
 
 Node Parser::statement_or_body() {
-    if (currentToken() == Token::lcurly) {
-        return statements();
-    }
+    if (currentToken() == Token::lcurly) return statements();
     return statement();
 }
 
@@ -94,13 +81,6 @@ Node Parser::condition() {
 Node Parser::statement() {
     switch (currentToken()) {
         case Token::fn: return func_def();
-        /*case Token::pod: {
-            eat(Token::pod);
-            Node node(Node::Type::pod_def);
-            node.identifier.name = eat(Token::identifier).match;
-            node.params.push_back(statements());
-            return node;
-        }*/
         case Token::pod: return pod_def();
         case Token::tif: {
             eat(Token::tif);
@@ -162,7 +142,7 @@ Node Parser::statement() {
 
 Node Parser::parse_identifier() {
     Node identifier(Node::Type::identifier);
-    identifier.identifier.name = eat(Token::identifier).match;
+    identifier.identifier = IDENTIFIER();
     while (currentToken() == Token::dcolon) {
         eat(Token::dcolon);
         identifier.identifier.name += "::" + eat(Token::identifier).match;
@@ -193,7 +173,7 @@ Node Parser::parse_expression_0() {
             return node;
         }
     }
-    Log::warning("No expression", currentToken().loc);
+    //Log::warning("No expression", currentToken().loc);
     return Node();
 }
 
@@ -285,9 +265,7 @@ Node Parser::parse_expression_7() {}
 Node Parser::parse_expression_8() {}
 Node Parser::parse_expression_9() {}
 
-Node Parser::expression() {
-    return parse_expression_6();
-}
+Node Parser::expression() { return parse_expression_6(); }
 
 Node Parser::func_def() {
     auto node = Node::FuncDef();
@@ -296,14 +274,16 @@ Node Parser::func_def() {
     eat(Token::lparen);
     node.params[0] = param_list();
     eat(Token::rparen);
+    if (currentToken() == Token::colon) {
+        eat(Token::colon);
+        node.valType = type_mod();
+    }
     node.params[1] = statements();
     return node;
 }
 
 Identifier Parser::optional_identifier() {
-    if (currentToken() == Token::identifier) {
-        return IDENTIFIER();
-    }
+    if (currentToken() == Token::identifier) return IDENTIFIER();
     return {};
 }
 
@@ -324,13 +304,8 @@ Identifier Parser::IDENTIFIER() {
 Node Parser::param_list() {
     Node node(Node::Type::list);
     const auto nameTypePair = [this]() -> Node {
-        auto id = eat(Token::identifier).match;
         Node node(Node::Type::identifier);
-        node.identifier.name = id;
-        if (currentToken() == Token::colon) {
-            eat(Token::colon);
-            node.valType.type = token_to_type(eat(TypeTokens));
-        }
+        node.identifier = typed_identifier();
         return node;
     };
     if (currentToken() == Token::identifier) {
@@ -347,14 +322,30 @@ Identifier Parser::typed_identifier() {
     Identifier identifier = IDENTIFIER();
     if (currentToken() == Token::colon) {
         eat(Token::colon);
-        if (currentToken() == Token::identifier) {
-            identifier.valType = {TypeT::pod, IDENTIFIER().name};
-        }
-        else {
-            identifier.valType = {token_to_type(eat(TypeTokens)), ""};
-        }
+        identifier.type = type_mod();
     }
     return identifier;
+}
+
+Type Parser::type_mod() {
+    Type type;
+    if (currentToken() == Token::identifier) {
+        type.type = TypeT::pod;
+        type.name = IDENTIFIER().name;
+    }
+    else type.type = token_to_type(eat(currentToken()));
+    type.modifier = type_mod_impl();
+    return type;
+}
+
+std::vector<TypeT> Parser::type_mod_impl() {
+    std::vector<TypeT> out;
+    top:
+    switch (currentToken()) {
+        case Token::band: out.push_back(TypeT::reference); goto top;
+        case Token::star: out.push_back(TypeT::pointer); goto top;
+    }
+    return out;
 }
 
 Node Parser::expr_or_list() {
@@ -370,9 +361,7 @@ Node Parser::expr_or_list() {
 Node Parser::expression_list() {
     Node node(Node::Type::list);
     Node expr(Node::Type::list);
-    while((expr = expression()).type != Node::Type::null) {
-        node.params.push_back(expr);
-    }
+    while((expr = expression()).type != Node::Type::null) node.params.push_back(expr);
     return node;
 }
 
@@ -400,22 +389,146 @@ TokenInfo Parser::currentToken() { return _index < tokens.size() ? tokens[_index
 Loc Parser::loc() { return currentToken().loc; };
 
 void Parser::printAST(Node node, int level) {
-    for (auto i = 0; i < level; ++i) {
-        std::cout << ' ';
-    }
+    const auto printLevel = [level](int off = 0){ for (auto i = 0; i < level + off; ++i) std::cout << ' '; };
 
-    std::cout << node.type << '\n';
-    switch (node.type) {
-        case Node::Type::list: {
-            for (auto i = 0; i < node.params.size(); ++i) {
-                printAST(node.params[i], level+1);
-            }
+    const auto& type = node.type;
+    const auto& params = node.params;
+
+    switch (type) {
+        case Node::Type::null: std::cout << "###NULL###"; break;
+        case Node::Type::plus:
+        case Node::Type::minus:
+        case Node::Type::assign:
+        case Node::Type::plusassign:
+        case Node::Type::minusassign:
+        case Node::Type::equal:
+        case Node::Type::slash:
+        case Node::Type::star:
+        case Node::Type::perc:
+        case Node::Type::andd:
+        case Node::Type::orr: {
+            printAST(params[0], level);
+            std::cout << ' ' << type << ' ';
+            printAST(params[1], level);
+            break;
         }
-        break;
-        break;
+        case Node::Type::uplus:
+        case Node::Type::uminus:
+        case Node::Type::deref:
+        case Node::Type::addr: {
+            std::cout << type;
+            printAST(params[0], level);
+            break;
+        }
+        case Node::Type::pod_access: std::cout << "UNHANDLED PRINT"; break;
+        case Node::Type::call: {
+            std::cout << node.identifier << '(';
+            if (params[0].params.size()) printAST(params[0].params[0], level);
+            for (auto i = 1; i < params[0].params.size(); ++i) {
+                std::cout << ", ";
+                printAST(params[0].params[i], level);
+            }
+            std::cout << ')';
+            break;
+        }
+        case Node::Type::index: std::cout << "UNHANDLED PRINT"; break;
+        case Node::Type::ns: std::cout << "UNHANDLED PRINT"; break;
+        case Node::Type::number: {
+            std::cout << node.value;
+            break;
+        }
+        case Node::Type::string: {
+            std::cout << '"' << node.value << '"';
+            break;
+        }
+        case Node::Type::identifier: {
+            std::cout << node.identifier;
+            break;
+        }
+
         case Node::Type::func_def: {
-            std::cout << "fn " << node.identifier.name << '\n';
-            printAST(node.params[1]);
+            std::cout << "fn " << node.identifier << '(';
+            if (params[0].params.size()) printAST(params[0].params[0], level);
+            for (auto i = 1; i < params[0].params.size(); ++i) {
+                std::cout << ", ";
+                printAST(params[0].params[i], level);
+            }
+            std::cout << "): ";
+            std::cout << node.valType;
+            std::cout << "{\n";
+            for (auto i = 0; i < params[1].params.size(); ++i) {
+                printLevel(1);
+                printAST(params[1].params[i], level + 1);
+                std::cout << ";\n";
+            }
+            printLevel();
+            std::cout << '}';
+            break;
+        }
+        case Node::Type::pod_def: {
+            std::cout << "pod " << node.identifier << " {\n";
+            printAST(params[0], level + 1);
+            printLevel();
+            std::cout << '}';
+            break;
+        }
+        case Node::Type::iff: {
+            std::cout << "if(";
+            printAST(params[0], level);
+            std::cout << ") ";
+            if (params[1].type == Node::Type::list) {
+                std::cout << "{\n";
+                printAST(params[1], level + 1);
+                printLevel();
+                std::cout << '}';
+            }
+            else printAST(params[1], level);
+
+            if (params.size() > 2) {
+                if (params[2].type == Node::Type::list) {
+                    std::cout << "else {\n";
+                    printAST(params[2], level + 1);
+                    printLevel();
+                    std::cout << '}';
+                }
+                else printAST(params[2], level);
+            }
+            break;
+        }
+        case Node::Type::whilee: {
+            std::cout << "while(";
+            printAST(params[0], level);
+            std::cout << ") ";
+            if (params[1].type == Node::Type::list) {
+                std::cout << "{\n";
+                printAST(params[1], level + 1);
+                printLevel();
+                std::cout << '}';
+            }
+            else printAST(params[1], level);
+            break;
+        }
+        case Node::Type::returnn: {
+            std::cout << "return ";
+            printAST(params[0], level);
+            break;
+        }
+        case Node::Type::let:
+        case Node::Type::constt: {
+            std::cout << type << ' ' << node.identifier;
+            if (node.params.size()) {
+                std::cout << " = ";
+                printAST(node.params[0], level);
+            }
+            break;
+        }
+        case Node::Type::list: {
+            for(auto i = 0; i < params.size(); ++i) {
+                printLevel();
+                printAST(params[i], level);
+                std::cout << '\n';
+            }
+            break;
         }
     }
 }
