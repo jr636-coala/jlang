@@ -14,13 +14,12 @@ std::unordered_map<std::string, Interpreter::compilerfunc_t> Interpreter::compil
 TypeVal Interpreter::interp() {
     if (!currentScope) delete currentScope;
     currentScope = new Scope;
-    return run(program);
+    run(program);
     // We should have our entry now
-    //auto c = std::make_unique<Call>();
-    //c->expression = new Identifier();
-    //static_cast<Identifier*>(c->expression)->identifier = entry;
-    //c->arguments = new ExpressionList();
-    //return run(c.get());
+    Node call(Node::Type::call);
+    call.identifier.name = entry.identifier.name;
+    call.params.push_back({});
+    return run(call);
 }
 TypeVal Interpreter::interpModule() {
     currentScope = new Scope;
@@ -28,29 +27,30 @@ TypeVal Interpreter::interpModule() {
 }
 
 TypeVal Interpreter::run(Node node) {
+    //std::cout << node.type << ' ' << currentScope << '\n';
     switch(node.type) {
         case Node::Type::addr:          return TypeVal();
         case Node::Type::andd:          return TypeVal();
-        case Node::Type::call:          return TypeVal();
-        case Node::Type::constt:        return TypeVal();
+        case Node::Type::call:          return run_call(node);
+        case Node::Type::constt:        return run_constDef(node);
         case Node::Type::deref:         return TypeVal();
         case Node::Type::equal:         return TypeVal();
-        case Node::Type::func_def:      return TypeVal();
-        case Node::Type::identifier:    return TypeVal();
+        case Node::Type::func_def:      return run_funcDef(node);
+        case Node::Type::identifier:    return run_identifier(node);
         case Node::Type::iff:           return run_if(node);
         case Node::Type::index:         return TypeVal();
         case Node::Type::let:           return TypeVal();
-        case Node::Type::list:          return TypeVal();
-        case Node::Type::ns:            return TypeVal();
+        case Node::Type::list:          return run_list(node);
+        case Node::Type::ns:            return run_nsDef(node);
         case Node::Type::orr:           return TypeVal();
         case Node::Type::pod_access:    return TypeVal();
-        case Node::Type::pod_def:       return TypeVal();
+        case Node::Type::pod_def:       return run_podDef(node);
         case Node::Type::returnn:       return TypeVal();
         case Node::Type::whilee:        return TypeVal();
 
         case Node::Type::assign:
         case Node::Type::plusassign:
-        case Node::Type::minusassign:   return TypeVal();
+        case Node::Type::minusassign:   return run_binOp(node);
 
         case Node::Type::minus:
         case Node::Type::plus:
@@ -73,11 +73,10 @@ TypeVal Interpreter::run_list(Node list) {
 }
 
 TypeVal Interpreter::run_call(Node call) {
-
     std::vector<TypeVal> args;
     const auto& arg_exps = call.params[0];
     args.reserve(arg_exps.params.size());
-    for (auto i = 0; i < arg_exps.params.size(); ++i) args[i] = run(arg_exps.params[i]); 
+    for (auto i = 0; i < arg_exps.params.size(); ++i) args.push_back(run(arg_exps.params[i])); 
     TypeVal ret;
 
     if (call.identifier.name[0] == '#') {
@@ -91,8 +90,9 @@ TypeVal Interpreter::run_call(Node call) {
         // Does not support args atm
         // Also assume that it is an identifier call
         const auto [func_v, scope] = currentScope->search(call.identifier.name);
-        if (!func_v.has_value() || func_v.value().type != TypeT::fn)
+        if (!func_v.has_value() || func_v.value().type != TypeT::fn) {
             Log::error("function \"" + call.identifier.name + "\" does not exist", call.loc);
+        }
         const auto func = func_v.value().fn->val;
 
         // Replace scope so that private areas can be accessed (this should be
@@ -114,7 +114,7 @@ TypeVal Interpreter::run_call(Node call) {
 }
 
 TypeVal Interpreter::run_funcDef(Node func) {
-    return this->currentScope->val[func.identifier.name] = TypeVal(/*func*/);
+    return this->currentScope->val[func.identifier.name] = TypeVal(func);
 }
 
 TypeVal Interpreter::run_varDef(Node def) {
@@ -151,6 +151,7 @@ TypeVal Interpreter::run_binOp(Node op) {
 }
 
 TypeVal Interpreter::run_identifier(Node identifier) {
+    if (identifier.identifier.name[0] == ':') return {};
     auto [_v,_] = currentScope->search(identifier.identifier.name);
     if (!_v.has_value()) {
         Log::error("Identifier \"" + identifier.identifier.name + "\" does not exist", identifier.loc);
@@ -171,13 +172,13 @@ TypeVal Interpreter::run_nsDef(Node def) {
     this->currentScope = this_scope;
 
     // Demangle names and copy to outer scope the ones we care about
-    /*auto& ns_vars = ns.ns->val;
+    auto& ns_vars = ns.ns->val;
     for (auto i = ns_vars.begin(); i != ns_vars.end(); ++i) {
         auto [id, var] = *i;
         if (id[0] == ':') {
             ns_vars[id.substr(2)] = var;
         }
-    }*/
+    }
     return ns;
 }
 TypeVal Interpreter::run_podDef(Node def) {
@@ -201,13 +202,6 @@ TypeVal Interpreter::run_podDef(Node def) {
         }
     }
     return pod;*/
-}
-
-TypeVal Interpreter::run_nsmemDec(Node def) {
-    auto var = run(def.params[0]);
-    var.constant = true;
-    this->currentScope->val["::" + def.identifier.name] = var;
-    return var;
 }
 
 TypeVal Interpreter::run_constDef(Node def) {

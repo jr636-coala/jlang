@@ -112,6 +112,13 @@ namespace AST {
                 case Token::star: mappedOp = Type::star; break;
                 case Token::slash: mappedOp = Type::slash; break;
                 case Token::perc: mappedOp = Type::perc; break;
+
+                case Token::andd: mappedOp = Type::andd; break;
+                case Token::orr: mappedOp = Type::orr; break;
+
+                case Token::assign: mappedOp = Type::assign; break;
+                case Token::plusequal: mappedOp = Type::plusassign; break;
+                case Token::minusequal: mappedOp = Type::minusassign; break;
             }
             Node node(mappedOp);
             node.params.push_back(a);

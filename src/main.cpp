@@ -16,27 +16,18 @@ std::string loadFile(const std::string& path) {
     return ss.str();
 }
 
-void printTokens(std::vector<TokenInfo> tokens) {
-    for (auto i = 0; i < tokens.size(); ++i) {
-        std::cout << tokens[i] << ' ';
-    }
-    std::cout << '\n';
-}
-
 int main(int argc, char** argv) {
     auto path = argv[1];
     auto tokeniser = Tokeniser(loadFile(path), path);
     auto tokens = tokeniser.getTokens();
-    //printTokens(tokens);
     auto parser = Parser(tokens);
     auto ast = parser.parse();
-    Parser::printAST(ast);
     std::cout << "\n\nPROGRAM OUTPUT:\n";
 
     // Define compilerFuncs
     Interpreter::compilerFuncs["#entry"] = [](auto& inter, auto&, const auto& args) -> TypeVal {
-        inter.entry = args[0].fn->val.identifier.name;
-        std::cout << inter.entry << " : entry " << '\n';
+        inter.entry = args[0].fn->val;
+        std::cout << inter.entry.identifier.name << " : entry " << '\n';
     };
     Interpreter::compilerFuncs["#loc"] = [](auto&, auto& loc, const auto&){
         TypeVal ret(TypeT::string);
@@ -81,7 +72,7 @@ int main(int argc, char** argv) {
     };
 
     auto interpreter = Interpreter(ast, path);
-    std::cout << *interpreter.interp().i64;
+    interpreter.interp();
 
     return 0;
 }

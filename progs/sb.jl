@@ -10,7 +10,7 @@ const TRUE = 1;
 const FALSE = 0;
 
 fn main() {
-    print(print("Hello, World!"));
+    print("Hello, World!");
 
     /*
         Multiline comment

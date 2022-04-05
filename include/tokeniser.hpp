@@ -134,6 +134,7 @@ class Tokeniser {
 public:
     Tokeniser(const std::string& src, const std::string& filename = "");
     std::vector<TokenInfo> getTokens();
+    static void printTokens(std::vector<TokenInfo> tokens);
 
 private:
     std::string src {};

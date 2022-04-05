@@ -25,7 +25,7 @@ struct TypeVal {
 
     TypeVal(std::int64_t x);
 
-    //Type(AST::FunctionDefinition *fn);
+    TypeVal(AST::Node node);
 
     TypeT type;
     bool constant {};

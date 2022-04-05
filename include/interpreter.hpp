@@ -19,7 +19,7 @@ public:
     TypeVal interp();
     TypeVal interpModule();
 
-    std::string entry;
+    AST::Node entry;
 
     using compilerfunc_t = TypeVal(*)(Interpreter&, const Loc&, const std::vector<TypeVal>&);
 
@@ -36,7 +36,6 @@ private:
     TypeVal run_constDef(AST::Node def);
     TypeVal run_nsDef(AST::Node def);
     TypeVal run_podDef(AST::Node def);
-    TypeVal run_nsmemDec(AST::Node def);
     TypeVal run_if(AST::Node def);
     TypeVal run_while(AST::Node def);
     TypeVal run_binOp(AST::Node op);

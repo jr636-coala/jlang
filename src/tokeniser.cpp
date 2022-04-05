@@ -131,5 +131,15 @@ std::vector<TokenInfo> Tokeniser::getTokens() {
 
         list.push_back({ .match = str, .token = token, .loc = loc });
     }
+    //Tokeniser::printTokens(list);
     return list;
+}
+
+
+void Tokeniser::printTokens(std::vector<TokenInfo> tokens) {
+    std::cout << "TOKENS\n";
+    for (auto i = 0; i < tokens.size(); ++i) {
+        std::cout << tokens[i] << ' ';
+    }
+    std::cout << '\n';
 }

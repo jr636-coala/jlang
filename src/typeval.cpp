@@ -28,10 +28,10 @@ TypeVal::TypeVal(std::int64_t x) {
     setupType(this, TypeT::i64);
     i64->val = x;
 }
-//Type::Type(AST::FunctionDefinition* fn) {
-//    setupType(this, TypeT::fn);
-//    this->fn->val = fn;
-//}
+TypeVal::TypeVal(AST::Node node) {
+    setupType(this, TypeT::fn);
+    this->fn->val = node;
+}
 
 // Binary operators
 

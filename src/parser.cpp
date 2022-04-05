@@ -30,23 +30,19 @@ TokenInfo Parser::eat(std::vector<Token> tokenType) {
 }
 
 Node Parser::parse() {
-    program = Node(Node::Type::list);
-    while(_index < tokens.size()) {
-        Node stmt = statement();
-        if (stmt.type == Node::Type::null) continue;;
-        program.params.push_back(stmt);
-    }
+    tokens.insert(tokens.begin(), {"", Token::lcurly});
+    tokens.push_back({"", Token::rcurly});
+    program = statements();
+    Parser::printAST(program);
     return program;
 }
 
 Node Parser::parseModule() {
     module = Node(Node::Type::ns);
-    while(_index < tokens.size()) {
-        Node stmt = statement();
-        if (stmt.type == Node::Type::null) continue;
-        module.params.push_back(stmt);
-        std::cout << _index << '\n';
-    }
+    tokens.insert(tokens.begin(), {"", Token::lcurly});
+    tokens.push_back({"", Token::rcurly});
+    module.params = statements().params;
+    //Parser::printAST(module);
     return module;
 }
 
@@ -168,12 +164,17 @@ Node Parser::parse_expression_0() {
         case Token::fn: return func_def();
         case Token::dcolon: {
             eat(Token::dcolon);
+            if (currentToken() == Token::identifier) {
+                Node node = parse_identifier();
+                node.identifier.name = "::" + node.identifier.name;
+                return node;
+            }
             Node node(Node::Type::ns);
             node.params = statements().params;
             return node;
         }
     }
-    //Log::warning("No expression", currentToken().loc);
+    Log::warning("No expression", currentToken().loc);
     return Node();
 }
 
@@ -303,16 +304,11 @@ Identifier Parser::IDENTIFIER() {
 
 Node Parser::param_list() {
     Node node(Node::Type::list);
-    const auto nameTypePair = [this]() -> Node {
-        Node node(Node::Type::identifier);
-        node.identifier = typed_identifier();
-        return node;
-    };
     if (currentToken() == Token::identifier) {
-        node.params.push_back(nameTypePair());
+        node.params.push_back(Node(typed_identifier()));
         while(currentToken() == Token::comma) {
             eat(Token::comma);
-            node.params.push_back(nameTypePair());
+            node.params.push_back(Node(typed_identifier()));
         }
     }
     return node;
@@ -361,7 +357,15 @@ Node Parser::expr_or_list() {
 Node Parser::expression_list() {
     Node node(Node::Type::list);
     Node expr(Node::Type::list);
-    while((expr = expression()).type != Node::Type::null) node.params.push_back(expr);
+    if((expr = expression()).type != Node::Type::null) {
+        node.params.push_back(expr);
+    }
+    else return node;
+    while(currentToken() == Token::comma) {
+        eat(Token::comma);
+        if ((expr = expression()).type == Node::Type::null) break;
+        node.params.push_back(expr);
+    }
     return node;
 }
 
@@ -381,7 +385,9 @@ Node Parser::parse_call(Identifier identifier) {
     Node node(Node::Type::call);
     node.identifier = identifier;
     node.loc = loc();
+    eat(Token::lparen);
     node.params.push_back(expression_list());
+    eat(Token::rparen);
     return node;
 }
 
@@ -393,7 +399,6 @@ void Parser::printAST(Node node, int level) {
 
     const auto& type = node.type;
     const auto& params = node.params;
-
     switch (type) {
         case Node::Type::null: std::cout << "###NULL###"; break;
         case Node::Type::plus:
@@ -432,7 +437,17 @@ void Parser::printAST(Node node, int level) {
             break;
         }
         case Node::Type::index: std::cout << "UNHANDLED PRINT"; break;
-        case Node::Type::ns: std::cout << "UNHANDLED PRINT"; break;
+        case Node::Type::ns: {
+            std::cout << "::{\n";
+            for(auto i = 0; i < params.size(); ++i) {
+                printLevel(1);
+                printAST(params[i], level + 1);
+                std::cout << '\n';
+            }
+            printLevel();
+            std::cout << '}';
+            break;
+        }
         case Node::Type::number: {
             std::cout << node.value;
             break;
