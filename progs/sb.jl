@@ -31,6 +31,9 @@ fn main() {
         i -= 1;
     }
 
+    let arr = ["Something", "Something 2", 3];
+    print(arr[1]);
+
     if (FALSE) {
         print("It is true");
     }

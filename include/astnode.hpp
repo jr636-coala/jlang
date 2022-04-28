@@ -33,6 +33,7 @@
         _(pod_access, ".") \
         _(call, "call") \
         _(index, "index") \
+        _(array, "[]") \
         _(ns, "ns") \
         _(number, "number") \
         _(string, "string") \

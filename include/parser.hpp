@@ -60,6 +60,7 @@ private:
 
     TokenInfo eat(Token tokenType);
     TokenInfo eat(std::vector<Token> tokenType);
+    AST::Node createNode(const AST::Node::Type& type);
 
     long _index {0};
     std::vector<TokenInfo> tokens;

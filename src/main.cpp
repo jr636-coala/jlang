@@ -20,8 +20,10 @@ int main(int argc, char** argv) {
     auto path = argv[1];
     auto tokeniser = Tokeniser(loadFile(path), path);
     auto tokens = tokeniser.getTokens();
+    //Tokeniser::printTokens(tokens);
     auto parser = Parser(tokens);
     auto ast = parser.parse();
+    std::cout << ast.params[0].type;
     std::cout << "\n\nPROGRAM OUTPUT:\n";
 
     // Define compilerFuncs

@@ -67,6 +67,7 @@ type_mod_impl:          type_mod_impl "*"
 expression:             "::" '{' statements '}'
 |                       IDENTIFIER '(' expression_list ')'
 |                       IDENTIFIER index
+|                       '[' expression_list ']'
 |                       pod_access
 |                       '(' expression ')'
 |                       func_def

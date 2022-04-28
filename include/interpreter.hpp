@@ -42,6 +42,8 @@ private:
     TypeVal run_identifier(AST::Node identifier);
     TypeVal run_return(AST::Node returnn);
     TypeVal run_let(AST::Node let);
+    TypeVal run_array(AST::Node array);
+    TypeVal run_index(AST::Node index);
 
     bool valueIsTrue(TypeVal val);
     AST::Node program;

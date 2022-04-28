@@ -8,6 +8,12 @@
 
 using namespace AST;
 
+Node Parser::createNode(const Node::Type& type) {
+    Node node(type);
+    node.loc = loc();
+    return node;
+}
+
 TokenInfo Parser::eat(Token tokenType) {
     if (_index > tokens.size()) throw;
     const auto token = currentToken();
@@ -48,7 +54,7 @@ Node Parser::parseModule() {
 
 Node Parser::statements() {
     eat(Token::lcurly);
-    Node node(Node::Type::list);
+    Node node = createNode(Node::Type::list);
     if (currentToken() == Token::rcurly) {
         eat(Token::rcurly);
         return node;
@@ -80,7 +86,7 @@ Node Parser::statement() {
         case Token::pod: return pod_def();
         case Token::tif: {
             eat(Token::tif);
-            Node node(Node::Type::iff);
+            Node node = createNode(Node::Type::iff);
             node.params.push_back(condition());
             node.params.push_back(statement_or_body());
             if (currentToken() == Token::telse) {
@@ -92,7 +98,7 @@ Node Parser::statement() {
         case Token::twhile: {
             eat(Token::twhile);
             eat(Token::lparen);
-            Node node(Node::Type::whilee);
+            Node node = createNode(Node::Type::whilee);
             node.params.push_back(expression());
             eat(Token::rparen);
             if (currentToken() == Token::lcurly) {
@@ -105,14 +111,14 @@ Node Parser::statement() {
         }
         case Token::ret: {
             eat(Token::ret);
-            Node node(Node::Type::returnn);
+            Node node = createNode(Node::Type::returnn);
             node.params.push_back(expression());
             eat(Token::semicolon);
             return node;
         }
         case Token::let: {
             eat(Token::let);
-            Node node(Node::Type::let);
+            Node node = createNode(Node::Type::let);
             node.identifier = typed_identifier();
             if (currentToken() == Token::assign) {
                 eat(Token::assign);
@@ -123,7 +129,7 @@ Node Parser::statement() {
         }
         case Token::tconst: {
             eat(Token::tconst);
-            Node node(Node::Type::constt);
+            Node node = createNode(Node::Type::constt);
             node.identifier = typed_identifier();
             eat(Token::assign);
             node.params.push_back(expr_or_list());
@@ -137,7 +143,7 @@ Node Parser::statement() {
 }
 
 Node Parser::parse_identifier() {
-    Node identifier(Node::Type::identifier);
+    Node identifier = createNode(Node::Type::identifier);
     identifier.loc = loc();
     identifier.identifier = IDENTIFIER();
     while (currentToken() == Token::dcolon) {
@@ -170,8 +176,15 @@ Node Parser::parse_expression_0() {
                 node.identifier.name = "::" + node.identifier.name;
                 return node;
             }
-            Node node(Node::Type::ns);
+            Node node = createNode(Node::Type::ns);
             node.params = statements().params;
+            return node;
+        }
+        case Token::lsquare: {
+            Node node = Node(Node::Type::array);
+            eat(Token::lsquare);
+            node.params = expression_list().params;
+            eat(Token::rsquare);
             return node;
         }
     }
@@ -183,25 +196,25 @@ Node Parser::parse_expression_1() {
     switch (currentToken()) {
         case Token::star: {
             eat(Token::star);
-            Node node(Node::Type::deref);
+            Node node = createNode(Node::Type::deref);
             node.params.push_back(parse_expression_0());
             return node;
         }
         case Token::band: {
             eat(Token::band);
-            Node node(Node::Type::addr);
+            Node node = createNode(Node::Type::addr);
             node.params.push_back(parse_expression_0());
             return node;
         }
         case Token::plus: {
             eat(Token::plus);
-            Node node(Node::Type::uplus);
+            Node node = createNode(Node::Type::uplus);
             node.params.push_back(parse_expression_0());
             return node;
         }
         case Token::minus: {
             eat(Token::minus);
-            Node node(Node::Type::uminus);
+            Node node = createNode(Node::Type::uminus);
             node.params.push_back(parse_expression_0());
             return node;
         }
@@ -291,7 +304,7 @@ Identifier Parser::optional_identifier() {
 
 Node Parser::pod_def() {
     eat(Token::pod);
-    Node node(Node::Type::pod_def);
+    Node node = createNode(Node::Type::pod_def);
     node.identifier = IDENTIFIER();
     node.params.push_back(statements());
     return node;
@@ -304,7 +317,7 @@ Identifier Parser::IDENTIFIER() {
 }
 
 Node Parser::param_list() {
-    Node node(Node::Type::list);
+    Node node = createNode(Node::Type::list);
     if (currentToken() == Token::identifier) {
         node.params.push_back(Node(typed_identifier()));
         while(currentToken() == Token::comma) {
@@ -356,7 +369,7 @@ Node Parser::expr_or_list() {
 }
 
 Node Parser::expression_list() {
-    Node node(Node::Type::list);
+    Node node = createNode(Node::Type::list);
     Node expr(Node::Type::list);
     if((expr = expression()).type != Node::Type::null) {
         node.params.push_back(expr);
@@ -371,7 +384,7 @@ Node Parser::expression_list() {
 }
 
 Node Parser::index(Identifier identifier) {
-    Node node(Node::Type::index);
+    Node node = createNode(Node::Type::index);
     node.identifier = identifier;
     while(currentToken() == Token::lsquare) {
         eat(Token::lsquare);
@@ -383,9 +396,8 @@ Node Parser::index(Identifier identifier) {
 }
 
 Node Parser::parse_call(Identifier identifier) {
-    Node node(Node::Type::call);
+    Node node = createNode(Node::Type::call);
     node.identifier = identifier;
-    node.loc = loc();
     eat(Token::lparen);
     node.params.push_back(expression_list());
     eat(Token::rparen);

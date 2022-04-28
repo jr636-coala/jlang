@@ -38,7 +38,7 @@ TypeVal Interpreter::run(Node node) {
         case Node::Type::func_def:      return run_funcDef(node);
         case Node::Type::identifier:    return run_identifier(node);
         case Node::Type::iff:           return run_if(node);
-        case Node::Type::index:         return TypeVal();
+        case Node::Type::index:         return run_index(node);
         case Node::Type::let:           return run_let(node);
         case Node::Type::list:          return run_list(node);
         case Node::Type::ns:            return run_nsDef(node);
@@ -47,6 +47,7 @@ TypeVal Interpreter::run(Node node) {
         case Node::Type::pod_def:       return run_podDef(node);
         case Node::Type::returnn:       return run_return(node);
         case Node::Type::whilee:        return run_while(node);
+        case Node::Type::array:         return run_array(node);
 
         case Node::Type::assign:
         case Node::Type::plusassign:
@@ -234,6 +235,23 @@ TypeVal Interpreter::run_let(Node let) {
     auto var = run(let.params[0]);
     this->currentScope->val[let.identifier.name] = var;
     return var;
+}
+
+TypeVal Interpreter::run_array(Node array) {
+    TypeVal val(TypeT::arr);
+    for (auto i = 0; i < array.params.size(); ++i) val.arr->val.push_back(run(array.params[i]));
+    return val;
+}
+
+TypeVal Interpreter::run_index(Node index) {
+    TypeVal val = run_identifier(index.identifier);
+    for (auto i = 0; i < index.params.size(); ++i) {
+        if (val.type != TypeT::arr) Log::error("Attempt to index non array value", index.params[i].loc);
+        auto indexVal = run(index.params[i]);
+        if (indexVal.type != TypeT::i64) Log::error("Attempt to index array with non integer key", index.params[i].loc);
+        val = val.arr->val[*indexVal.i64];
+    }
+    return val;
 }
 
 bool Interpreter::valueIsTrue(TypeVal val) {
