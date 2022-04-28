@@ -47,12 +47,12 @@ int main(int argc, char** argv) {
     };
     Interpreter::compilerFuncs["#c"] = [](auto&, auto& loc, const auto& args) {
         const auto name = args[0].string->val;
-             if (name == "puts") return TypeVal(JL_C::jl_puts(args[1]));
-        else if (name == "strlen") return TypeVal(JL_C::jl_strlen(args[1]));
-        else if (name == "fopenw") return TypeVal(JL_C::jl_fopenw(args[1]));
-        else if (name == "fclose") return TypeVal(JL_C::jl_fclose(args[1]));
-        else if (name == "fwrite") return TypeVal(JL_C::jl_fwrite(args[1], args[2]));
-        else if (name == "system") return TypeVal(JL_C::jl_system(args[1]));
+             if (name == "puts")   return JL_C::jl_puts(args[1]);
+        else if (name == "strlen") return JL_C::jl_strlen(args[1]);
+        else if (name == "fopenw") return JL_C::jl_fopenw(args[1]);
+        else if (name == "fclose") return JL_C::jl_fclose(args[1]);
+        else if (name == "fwrite") return JL_C::jl_fwrite(args[1], args[2]);
+        else if (name == "system") return JL_C::jl_system(args[1]);
         return TypeVal();
     };
 

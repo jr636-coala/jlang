@@ -138,6 +138,7 @@ Node Parser::statement() {
 
 Node Parser::parse_identifier() {
     Node identifier(Node::Type::identifier);
+    identifier.loc = loc();
     identifier.identifier = IDENTIFIER();
     while (currentToken() == Token::dcolon) {
         eat(Token::dcolon);

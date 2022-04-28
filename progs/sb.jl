@@ -39,9 +39,9 @@ fn main() {
     }
 
     // File testing
-    //let f = file::open("test.txt");
-    //file::fwrite(f, "Hello World\n");
-    //file::close(f);
+    let f = file::open("bin/test.txt");
+    file::fwrite(f, "Hello, World!\n");
+    file::close(f);
 
 
     return abc(9999999);

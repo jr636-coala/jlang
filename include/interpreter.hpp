@@ -40,6 +40,8 @@ private:
     TypeVal run_while(AST::Node def);
     TypeVal run_binOp(AST::Node op);
     TypeVal run_identifier(AST::Node identifier);
+    TypeVal run_return(AST::Node returnn);
+    TypeVal run_let(AST::Node let);
 
     bool valueIsTrue(TypeVal val);
     AST::Node program;

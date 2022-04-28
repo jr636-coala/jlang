@@ -9,14 +9,14 @@
 
 namespace JL_C {
     extern "C" {
-        uint64_t jl_puts(const TypeVal&);
-        uint64_t jl_strlen(const TypeVal&);
+        TypeVal jl_puts(const TypeVal&);
+        TypeVal jl_strlen(const TypeVal&);
 
-        uint64_t jl_fopenw(const TypeVal&);
-        uint64_t jl_fclose(const TypeVal&);
-        uint64_t jl_fwrite(const TypeVal&, const TypeVal&);
+        TypeVal jl_fopenw(const TypeVal&);
+        TypeVal jl_fclose(const TypeVal&);
+        TypeVal jl_fwrite(const TypeVal&, const TypeVal&);
 
-        uint64_t jl_system(const TypeVal&);
+        TypeVal jl_system(const TypeVal&);
     }
 }
 #endif //LANG_C_HPP

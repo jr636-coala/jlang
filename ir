@@ -1,0 +1,27 @@
+*x;
+&x;
+x + y;
+x - y;
+x * y;
+x / y;
+x % y;
+x(y)
+goto example
+
+##############
+
+if (a) {
+    b
+}
+else {
+    c
+}
+
+!a
+je .else
+.if
+b
+j .eif
+.else
+c
+.eif

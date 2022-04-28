@@ -7,5 +7,5 @@
     return #c("fclose", file);
 };
 ::fwrite = fn (file : i64, content : string) {
-    return #c("fwrite", content, mstring::len(content), file);
+    return #c("fwrite", content, file);
 };

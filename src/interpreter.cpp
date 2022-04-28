@@ -39,14 +39,14 @@ TypeVal Interpreter::run(Node node) {
         case Node::Type::identifier:    return run_identifier(node);
         case Node::Type::iff:           return run_if(node);
         case Node::Type::index:         return TypeVal();
-        case Node::Type::let:           return TypeVal();
+        case Node::Type::let:           return run_let(node);
         case Node::Type::list:          return run_list(node);
         case Node::Type::ns:            return run_nsDef(node);
         case Node::Type::orr:           return TypeVal();
         case Node::Type::pod_access:    return TypeVal();
         case Node::Type::pod_def:       return run_podDef(node);
-        case Node::Type::returnn:       return TypeVal();
-        case Node::Type::whilee:        return TypeVal();
+        case Node::Type::returnn:       return run_return(node);
+        case Node::Type::whilee:        return run_while(node);
 
         case Node::Type::assign:
         case Node::Type::plusassign:
@@ -87,7 +87,6 @@ TypeVal Interpreter::run_call(Node call) {
     }
     else {
         // Run the non compiler function
-        // Does not support args atm
         // Also assume that it is an identifier call
         const auto [func_v, scope] = currentScope->search(call.identifier.name);
         if (!func_v.has_value() || func_v.value().type != TypeT::fn) {
@@ -124,8 +123,8 @@ TypeVal Interpreter::run_varDef(Node def) {
 TypeVal Interpreter::run_binOp(Node op) {
     auto l = run(op.params[0]);
     auto r = run(op.params[1]);
-    if (l.type == TypeT::unknown || r.type == TypeT::unknown)
-        Log::error("Unknown types for binary operator", op.loc);
+    if (l.type == TypeT::unknown && op.type != Node::Type::assign || r.type == TypeT::unknown)
+        Log::error("Unknown types for binary operator \"" + typeT_to_string(l.type) + " " + AST::Node::type_to_string(op.type) + " " + typeT_to_string(r.type) + "\"", op.loc);
     switch (op.type) {
         case Node::Type::plus: return TypeVal::plus(l, r);
         case Node::Type::minus: return TypeVal::minus(l, r);
@@ -225,6 +224,16 @@ TypeVal Interpreter::run_if(Node def) {
 TypeVal Interpreter::run_while(Node def) {
     while(valueIsTrue(run(def.params[0]))) run(def.params[1]);
     return {};
+}
+
+TypeVal Interpreter::run_return(Node returnn) {
+    return run(returnn.params[0]);
+}
+
+TypeVal Interpreter::run_let(Node let) {
+    auto var = run(let.params[0]);
+    this->currentScope->val[let.identifier.name] = var;
+    return var;
 }
 
 bool Interpreter::valueIsTrue(TypeVal val) {

@@ -123,6 +123,7 @@ namespace AST {
             Node node(mappedOp);
             node.params.push_back(a);
             node.params.push_back(b);
+            node.loc = op.loc;
             return node;
         }
 
