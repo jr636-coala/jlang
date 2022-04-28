@@ -16,7 +16,7 @@ std::vector<TokenInfo> Tokeniser::getTokens() {
             for (; j < match.length(); ++j) {
                 if (src[index + j] != match[j]) break;
             }
-            if (j == match.length()) {
+            if (j == match.length() && (!isalpha(match[match.length()-1]) || !isalnum(src[index+match.length()]))) {
                 (col += match.length(), index += match.length());
                 return token;
             }
