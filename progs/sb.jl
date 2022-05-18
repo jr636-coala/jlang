@@ -40,6 +40,12 @@ const TRUE = 1;
 const FALSE = 0;
 
 fn main() {
+
+
+
+    print(10 + 10);
+    return;
+    
     print("Hello, World!");
 
     /*
@@ -49,18 +55,18 @@ fn main() {
     //print("Length of string " + file::mstring::len("Hello"));
     //print("I am currently at : " + #loc());
 
-    let y = 10;
-    fn abc(x : i8) {
-        y += x;
-        return y;
-    }
+    //let y = 10;
+    //fn abc(x : i8) {
+    //    y += x;
+    //    return y;
+    //}
 
     //whileTest();
     //ifTest();
     //fileTest();
-    arrayTest();
+    //arrayTest();
 
-    return abc(9999999);
+    //return abc(9999999);
 }
 
 #entry(main);

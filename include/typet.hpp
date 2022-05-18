@@ -30,7 +30,7 @@
 enum class TypeT {
     unknown,
 #define TYPE_FUNC(T, S) T,
-    TYPES(TYPE_FUNC)E
+    TYPES(TYPE_FUNC)
 };
 
 inline std::string typeT_to_string(TypeT type) {

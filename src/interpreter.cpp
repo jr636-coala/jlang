@@ -228,7 +228,9 @@ TypeVal Interpreter::run_while(Node def) {
 }
 
 TypeVal Interpreter::run_return(Node returnn) {
-    return run(returnn.params[0]);
+    const auto expr = returnn.params[0];
+    if (expr.type == Node::Type::null) return TypeVal(0);
+    return run(expr);
 }
 
 TypeVal Interpreter::run_let(Node let) {
